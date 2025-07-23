@@ -1,0 +1,17 @@
+boto3
+openai>=1.87.0
+openai-agents
+supabase==2.9.1
+amadeus==8.1.0
+requests
+python-dotenv
+pydantic>=2.10
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+msal
+email-validator
+psycopg2-binary>=2.9.0,<3.0.0
+sqlalchemy
+tenacity

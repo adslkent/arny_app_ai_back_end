@@ -1,0 +1,165 @@
+service: arny-ai-backend
+
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  timeout: 29  # Keep shorter for API Gateway functions
+  memorySize: 1024
+  
+  environment:
+    STAGE: ${self:provider.stage}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+    SUPABASE_URL: ${env:SUPABASE_URL}
+    SUPABASE_ANON_KEY: ${env:SUPABASE_ANON_KEY}
+    SUPABASE_SERVICE_ROLE_KEY: ${env:SUPABASE_SERVICE_ROLE_KEY}
+    AMADEUS_API_KEY: ${env:AMADEUS_API_KEY}
+    AMADEUS_API_SECRET: ${env:AMADEUS_API_SECRET}
+    AMADEUS_BASE_URL: ${env:AMADEUS_BASE_URL, 'test.api.amadeus.com'}
+    GOOGLE_CLIENT_ID: ${env:GOOGLE_CLIENT_ID}
+    GOOGLE_CLIENT_SECRET: ${env:GOOGLE_CLIENT_SECRET}
+    GOOGLE_REDIRECT_URI: ${env:GOOGLE_REDIRECT_URI}
+    OUTLOOK_CLIENT_ID: ${env:OUTLOOK_CLIENT_ID}
+    OUTLOOK_CLIENT_SECRET: ${env:OUTLOOK_CLIENT_SECRET}
+    OUTLOOK_REDIRECT_URI: ${env:OUTLOOK_REDIRECT_URI}
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: '*'
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: true
+    slim: false  # IMPORTANT: Disabled to prevent stripping of package metadata
+    strip: false
+    staticCacheMaxVersions: 0
+    useDownloadCache: false
+    # Exclude AWS SDK to reduce package size
+    noDeploy:
+      - boto3
+      - botocore
+    # Force reinstall to avoid cache issues
+    pipCmdExtraArgs:
+      - --no-cache-dir
+      - --force-reinstall
+
+functions:
+  # Authentication functions - keep shorter timeout since auth operations are quick
+  auth:
+    handler: src/main.lambda_handler
+    timeout: 15
+    memorySize: 512
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: /auth/signup
+          method: post
+          cors: true
+      - http:
+          path: /auth/signin
+          method: post
+          cors: true
+      - http:
+          path: /auth/refresh
+          method: post
+          cors: true
+      - http:
+          path: /auth/signout
+          method: post
+          cors: true
+
+  # Onboarding functions - may need more time for email scanning and AI processing
+  onboarding:
+    handler: src/main.lambda_handler
+    timeout: 29
+    memorySize: 1024
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: /onboarding/chat
+          method: post
+          cors: true
+      - http:
+          path: /onboarding/group/check
+          method: post
+          cors: true
+      - http:
+          path: /onboarding/group/create
+          method: post
+          cors: true
+      - http:
+          path: /onboarding/group/join
+          method: post
+          cors: true
+
+  # MODIFIED: Main travel chat function with Function URL ONLY (15-minute timeout)
+  travel:
+    handler: src/main.lambda_handler
+    timeout: 900  # 15 minutes for Function URL (max allowed)
+    memorySize: 1536  # Increased memory for better performance
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    # Function URL configuration - NO API Gateway events
+    url:
+      cors: true  # Simplified CORS configuration
+    # NO API Gateway events - Function URL only
+
+  # User management functions - quick operations
+  user:
+    handler: src/main.lambda_handler
+    timeout: 10
+    memorySize: 512
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: /user/status
+          method: post
+          cors: true
+      - http:
+          path: /user/status
+          method: get
+          cors: true
+
+  # Health check function - very quick
+  health:
+    handler: src/main.lambda_handler
+    timeout: 5
+    memorySize: 256
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          path: /health
+          method: get
+          cors: true
+
+# Package configuration
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!.serverless/**'
+    - '!.git/**'
+    - '!__pycache__/**'
+    - '!*.pyc'
+    - '!.pytest_cache/**'
+    - '!tests/**'
+    - '!.env'
+    - '!README.md'
+    - '!verify_fix.py'
+    - '!deploy_fix.sh'

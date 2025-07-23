@@ -1,0 +1,35 @@
+# Core dependencies for Arny AI Backend
+# FIXED: Simplified and explicit versions to avoid packaging issues
+
+# Core AWS and framework
+boto3==1.34.162
+requests==2.31.0
+python-dotenv==1.0.0
+
+# OpenAI and AI
+openai>=1.87.0
+openai-agents==0.1.0
+
+# Database and validation
+supabase==2.9.1
+pydantic>=2.10
+psycopg2-binary>=2.9.0,<3.0.0
+sqlalchemy==2.0.35
+
+# Travel APIs
+amadeus==8.1.0
+
+# Google APIs
+google-auth==2.34.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0
+google-api-python-client==2.147.0
+
+# Microsoft APIs
+msal==1.31.0
+
+# Email validation - simplified
+email-validator==2.2.0
+
+# Utilities
+tenacity==9.0.0
