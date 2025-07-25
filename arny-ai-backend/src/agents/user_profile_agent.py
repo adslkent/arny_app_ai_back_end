@@ -786,7 +786,16 @@ Select exactly 10 hotel IDs from the provided list."""
                 if profile.get("birthdate"):
                     try:
                         from datetime import date
-                        birth_year = int(profile["birthdate"][:4])
+                        birthdate_value = profile["birthdate"]
+                        
+                        # Handle both date object and string cases
+                        if isinstance(birthdate_value, date):
+                            birth_year = birthdate_value.year
+                        elif isinstance(birthdate_value, str):
+                            birth_year = int(birthdate_value[:4])
+                        else:
+                            raise ValueError(f"Unexpected birthdate type: {type(birthdate_value)}")
+                            
                         current_year = date.today().year
                         age = current_year - birth_year
                         if 0 < age < 120:
@@ -887,7 +896,16 @@ Select exactly 10 hotel IDs from the provided list."""
                     if profile.get("birthdate"):
                         try:
                             from datetime import date
-                            birth_year = int(profile["birthdate"][:4])
+                            birthdate_value = profile["birthdate"]
+                            
+                            # Handle both date object and string cases
+                            if isinstance(birthdate_value, date):
+                                birth_year = birthdate_value.year
+                            elif isinstance(birthdate_value, str):
+                                birth_year = int(birthdate_value[:4])
+                            else:
+                                continue  # Skip invalid birthdate types
+                                
                             current_year = date.today().year
                             age = current_year - birth_year
                             if 0 < age < 120:
