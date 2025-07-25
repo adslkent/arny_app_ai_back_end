@@ -357,7 +357,7 @@ class DatabaseOperations:
             if isinstance(value, str) and value.strip():
                 value = value.strip()
                 # Try different date formats
-                for date_fmt in ["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y%m%d"]:
+                for date_fmt in ["%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y", "%Y%m%d"]:
                     try:
                         parsed_date = datetime.strptime(value, date_fmt).date()
                         return parsed_date.isoformat()
@@ -960,7 +960,14 @@ class DatabaseOperations:
             
             # Get user groups
             groups = await self.get_user_groups(validated_user_id)
-            
+
+            # Convert profile to dict and handle date serialization
+            profile_dict = profile.dict()
+
+            # Handle birthdate serialization
+            if profile_dict.get("birthdate") and isinstance(profile_dict["birthdate"], date):
+                profile_dict["birthdate"] = profile_dict["birthdate"].strftime("%d-%m-%Y")
+
             status = {
                 "user_id": validated_user_id,
                 "email": profile.email,
@@ -969,7 +976,7 @@ class DatabaseOperations:
                 "current_step": onboarding.current_step.value if onboarding else "group_code",
                 "completion_percentage": onboarding.completion_percentage if onboarding else 0.0,
                 "groups": groups,
-                "profile": profile.dict()
+                "profile": profile_dict
             }
             
             logger.info(f"User status retrieved for user: {validated_user_id}")
