@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, List
 from enum import Enum
 
 from openai import OpenAI
-from agents import Agent, Runner, function_tool
+from agents import Agent, Runner, function_tool, WebSearchTool
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -609,7 +609,8 @@ class OnboardingAgent:
                 send_group_invites_tool,
                 decline_group_invites_tool,
                 validate_group_code_tool,
-                skip_joining_group_tool
+                skip_joining_group_tool,
+                WebSearchTool()
             ]
         )
     
