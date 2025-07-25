@@ -27,7 +27,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
 from openai import AsyncOpenAI
-from agents import Agent, function_tool, Runner
+from agents import Agent, function_tool, Runner, WebSearchTool
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -450,7 +450,9 @@ class HotelAgent:
             name="hotel_search_agent",  # FIXED: Added required name parameter
             model="o4-mini",
             instructions=get_hotel_system_message(),
-            tools=[search_hotels_tool]
+            tools=[search_hotels_tool,
+                   WebSearchTool()
+            ]
         )
         
         print("✅ HotelAgent initialized with enhanced tools and caching")
