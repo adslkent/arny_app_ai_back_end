@@ -217,7 +217,7 @@ def search_flights_tool(origin: str, destination: str, departure_date: str,
         destination_code = AIRPORT_CODE_MAPPING.get(destination.lower(), destination.upper())
         
         print(f"📍 Using airport codes: {origin_code} → {destination_code}")
-        
+
         # Search flights using Amadeus
         search_params = {
             "origin": origin_code,
@@ -227,17 +227,29 @@ def search_flights_tool(origin: str, destination: str, departure_date: str,
             "adults": adults,
             "cabin_class": cabin_class
         }
-        
-        flights = _run_async_safely(agent.amadeus_service.search_flights(**search_params))
-        
+
+        amadeus_response = _run_async_safely(agent.amadeus_service.search_flights(**search_params))
+
+        # FIXED: Handle the response properly - extract results from the response
+        if isinstance(amadeus_response, dict):
+            if not amadeus_response.get("success", False):
+                return {
+                    "success": False,
+                    "message": f"Flight search failed: {amadeus_response.get('error', 'Unknown error')}"
+                }
+            flights = amadeus_response.get("results", [])
+        else:
+            # Fallback for direct list response (shouldn't happen with current implementation)
+            flights = amadeus_response if amadeus_response else []
+
         if not flights:
             return {
                 "success": False,
                 "message": f"No flights found for {origin_code} to {destination_code} on {departure_date}."
             }
-        
+
         print(f"🔍 Found {len(flights)} flights from Amadeus API")
-        
+
         # Create FlightSearch record
         search_id = str(uuid.uuid4())
         flight_search = FlightSearch(
@@ -248,24 +260,31 @@ def search_flights_tool(origin: str, destination: str, departure_date: str,
             destination=destination_code,
             departure_date=departure_date,
             return_date=return_date,
-            adults=adults,
+            passengers=adults,  # FIXED: Use 'passengers' field name as defined in the model
             cabin_class=cabin_class,
-            search_results=flights
+            search_results=flights  # FIXED: Now passing the list of flights, not the entire response dict
         )
         
         # Save search to database (async)
         _run_async_safely(agent.db.save_flight_search(flight_search))
-        
+
         # Apply profile filtering to flights
         original_count = len(flights)
-        filtered_flights, filtering_applied, rationale = _run_async_safely(
-            agent.profile_agent.filter_flights_for_group(
-                flights, 
-                agent.user_profile, 
-                max_results=10
+
+        # FIXED: Call the correct method on UserProfileAgent with proper parameters
+        filter_result = _run_async_safely(
+            agent.profile_agent.filter_flight_results(
+                user_id=agent.current_user_id,
+                flight_results=flights,
+                search_params=search_params
             )
         )
-        
+
+        # FIXED: Extract data from the returned dictionary structure
+        filtered_flights = filter_result.get("filtered_results", flights[:10])
+        filtering_applied = filter_result.get("filtering_applied", False)
+        rationale = filter_result.get("reasoning", "Applied personalized filtering based on your profile")
+
         filtered_count = len(filtered_flights)
         
         print(f"🎯 Profile filtering: {original_count} → {filtered_count} flights")
