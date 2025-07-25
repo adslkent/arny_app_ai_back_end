@@ -26,7 +26,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
 from openai import OpenAI
-from agents import Agent, function_tool, Runner
+from agents import Agent, function_tool, Runner, WebSearchTool
 
 from ..utils.config import config
 from ..services.amadeus_service import AmadeusService
@@ -537,7 +537,8 @@ class FlightAgent:
                 search_flights_tool,
                 search_airports_tool,
                 get_checkin_links_tool,
-                get_flight_pricing_tool
+                get_flight_pricing_tool,
+                WebSearchTool()
             ]
         )
     
