@@ -518,7 +518,7 @@ def skip_joining_group_tool() -> dict:
         return {
             "success": True,
             "personal_group_code": personal_group_code,
-            "message": "No problem! I've set up a personal group for you. You can always invite family members later."
+            "message": "No problem! You can always invite family members later."
         }
         
     except Exception as e:
