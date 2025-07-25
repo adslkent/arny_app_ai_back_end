@@ -57,9 +57,14 @@ def retry_on_openai_api_error_result(result):
     if hasattr(result, 'error') and result.error:
         return True
     if isinstance(result, dict):
+        # FIXED: Don't retry on flight/hotel filtering results
+        if 'filtered_results' in result:
+            return False  # This is a valid filtering result, not an API error
+            
+        # Only check for top-level error/warning fields, not deep in nested data
         return (
             result.get("error") is not None or
-            "warning" in result or
+            result.get("warning") is not None or  # FIXED: Check for warning field, not word in result
             result.get("success") is False
         )
     return False
@@ -75,9 +80,22 @@ def retry_on_openai_http_status_error(result):
 def retry_on_openai_validation_failure(result):
     """Condition 5: Retry if validation fails on OpenAI result"""
     try:
+        # FIXED: Check for flight/hotel filtering result structure
+        if isinstance(result, dict):
+            # If it's a filtering result (has filtered_results key), it's valid
+            if 'filtered_results' in result:
+                return False  # Valid filtering result
+            # If it has an output attribute (OpenAI response), it's valid
+            if hasattr(result, 'output'):
+                return False  # Valid OpenAI response
+        
+        # If result exists and has expected structure, don't retry
         if result and hasattr(result, 'output'):
             return False  # Has expected output structure
-        return True  # Missing expected structure
+        
+        # Only retry if result is None, empty, or clearly invalid
+        return result is None or (isinstance(result, str) and len(result.strip()) == 0)
+        
     except Exception:
         return True  # Any validation error
 
@@ -292,45 +310,143 @@ class UserProfileAgent:
     async def _get_group_profiles_enhanced(self, user_id: str) -> List[Dict[str, Any]]:
         """Get group profiles with optimized processing - NO TIMEOUTS OR MEMBER LIMITS"""
         try:
-            # Get user's groups
-            user_groups = await self.db.get_user_groups(user_id)
+            print(f"🔍 Getting enhanced group profiles for user: {user_id}")
             
-            if not user_groups:
-                # If no groups, get individual user profile
-                user_profile = await self.db.get_user_profile(user_id)
-                if user_profile:
-                    profile_dict = user_profile.dict()
-                    profile_dict["group_role"] = "individual"
-                    return [profile_dict]
+            # Get user's individual profile first
+            user_profile = await self.db.get_user_profile(user_id)
+            print(f"🔍 Raw user profile type: {type(user_profile)}")
+            
+            if not user_profile:
+                print(f"🔍 No user profile found for user: {user_id}")
                 return []
             
-            # Process all group members - NO LIMITS
+            # ENHANCED: Debug the profile object and safely extract data
+            profile_dict = None
+            try:
+                print(f"🔍 Profile object attributes: {dir(user_profile)}")
+                
+                if hasattr(user_profile, 'dict') and callable(user_profile.dict):
+                    # Pydantic model
+                    profile_dict = user_profile.dict()
+                    print(f"🔍 Pydantic profile dict created: {list(profile_dict.keys())}")
+                elif isinstance(user_profile, dict):
+                    # Already a dict
+                    profile_dict = user_profile.copy()
+                    print(f"🔍 Profile was already dict: {list(profile_dict.keys())}")
+                else:
+                    # Try to convert object to dict manually
+                    profile_dict = {}
+                    for attr in ['user_id', 'name', 'email', 'group_code', 'city', 'annual_income', 'holiday_preferences']:
+                        if hasattr(user_profile, attr):
+                            profile_dict[attr] = getattr(user_profile, attr)
+                    print(f"🔍 Manual profile dict created: {list(profile_dict.keys())}")
+            except Exception as e:
+                print(f"[ERROR] Profile conversion failed: {e}")
+                # Create minimal profile dict
+                profile_dict = {
+                    "user_id": user_id,
+                    "name": "User",
+                    "email": getattr(user_profile, 'email', ''),
+                }
+            
+            # Extract group_code safely
+            group_code = profile_dict.get('group_code') if profile_dict else None
+            print(f"🔍 Extracted group_code: {group_code}")
+            
+            # Get user's groups
+            try:
+                user_groups = await self.db.get_user_groups(user_id)
+                print(f"🔍 User groups from DB: {len(user_groups) if user_groups else 0}")
+            except Exception as e:
+                print(f"[ERROR] Failed to get user groups: {e}")
+                user_groups = []
+            
+            if not user_groups and not group_code:
+                # Return individual user profile
+                print(f"🔍 User {user_id} not in any group - returning individual profile")
+                
+                if profile_dict:
+                    profile_dict["group_role"] = "individual"
+                    profile_dict["group_code"] = None
+                    print(f"✅ Returning individual profile: {profile_dict.get('name', 'Unknown')} from {profile_dict.get('city', 'Unknown')}")
+                    return [profile_dict]
+                else:
+                    # Last resort fallback
+                    fallback_profile = {
+                        "user_id": user_id,
+                        "name": "User",
+                        "group_role": "individual",
+                        "group_code": None
+                    }
+                    print(f"⚠️ Using fallback profile for {user_id}")
+                    return [fallback_profile]
+            
+            # Process group members if user has group
             all_profiles = []
-            for group in user_groups:
+            for group_code in user_groups:  # FIXED: user_groups contains strings, not objects
                 try:
-                    group_members = await self.db.get_group_members(group.group_code)
-                    print(f"📊 Processing group {group.group_code} with {len(group_members)} members - NO MEMBER LIMITS")
+                    # FIXED: group_code is already a string, don't access .group_code
+                    group_members = await self.db.get_group_members(group_code)
+                    print(f"📊 Processing group {group_code} with {len(group_members)} members")
                     
                     for member in group_members:
                         try:
                             member_profile = await self.db.get_user_profile(member.user_id)
                             if member_profile:
-                                profile_dict = member_profile.dict()
-                                profile_dict["group_role"] = member.role
-                                profile_dict["group_code"] = group.group_code
-                                all_profiles.append(profile_dict)
+                                # Convert member profile to dict
+                                if hasattr(member_profile, 'dict') and callable(member_profile.dict):
+                                    member_dict = member_profile.dict()
+                                elif isinstance(member_profile, dict):
+                                    member_dict = member_profile.copy()
+                                else:
+                                    member_dict = {
+                                        "user_id": member.user_id,
+                                        "name": getattr(member_profile, 'name', 'Member'),
+                                        "email": getattr(member_profile, 'email', ''),
+                                    }
+                                
+                                member_dict["group_role"] = member.role
+                                member_dict["group_code"] = group_code  # FIXED: Use group_code string directly
+                                all_profiles.append(member_dict)
                         except Exception as e:
-                            logger.warning(f"Failed to get profile for member {member.user_id}: {e}")
+                            print(f"[WARNING] Failed to get profile for member {member.user_id}: {e}")
                             continue
                 except Exception as e:
-                    logger.warning(f"Failed to get members for group {group.group_code}: {e}")
+                    print(f"[WARNING] Failed to get members for group {group_code}: {e}")  # FIXED: Use group_code string directly
                     continue
             
-            return all_profiles
+            if all_profiles:
+                print(f"✅ Returning {len(all_profiles)} group profiles")
+                return all_profiles
+            else:
+                # Fallback to individual profile even if groups were found but failed to process
+                if profile_dict:
+                    profile_dict["group_role"] = "individual"
+                    profile_dict["group_code"] = None
+                    print(f"⚠️ Group processing failed, falling back to individual profile")
+                    return [profile_dict]
+                else:
+                    print(f"⚠️ Everything failed, using minimal fallback")
+                    return [{
+                        "user_id": user_id,
+                        "name": "User",
+                        "group_role": "individual",
+                        "group_code": None
+                    }]
             
         except Exception as e:
-            logger.error(f"Error getting group profiles: {e}")
-            return []
+            print(f"[ERROR] Major error in _get_group_profiles_enhanced: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Ultimate fallback
+            return [{
+                "user_id": user_id,
+                "name": "User", 
+                "group_role": "individual",
+                "group_code": None,
+                "error": str(e)
+            }]
 
     async def _get_group_profiles(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all group profiles for filtering - NO MEMBER LIMITS - FIXED VERSION"""
@@ -619,20 +735,39 @@ Select exactly 10 hotel IDs from the provided list."""
     def _create_profile_summary(self, group_profiles: List[Dict[str, Any]]) -> str:
         """Create concise profile summary for both individual travelers and groups"""
         try:
+            print(f"🔍 _create_profile_summary called with {len(group_profiles)} profiles")
+            
             if not group_profiles:
+                print(f"🔍 No group profiles provided")
                 return "unknown traveler profile"
             
             # Check if this is an individual traveler
             if len(group_profiles) == 1:
                 profile = group_profiles[0]
+                print(f"🔍 Processing individual profile with keys: {list(profile.keys())}")
+                
+                # DEBUG: Print actual values
+                print(f"🔍 travel_style: {profile.get('travel_style')} (type: {type(profile.get('travel_style'))})")
+                print(f"🔍 city: {profile.get('city')} (type: {type(profile.get('city'))})")
+                print(f"🔍 annual_income: {profile.get('annual_income')} (type: {type(profile.get('annual_income'))})")
+                print(f"🔍 holiday_preferences: {profile.get('holiday_preferences')} (type: {type(profile.get('holiday_preferences'))})")
+                print(f"🔍 birthdate: {profile.get('birthdate')} (type: {type(profile.get('birthdate'))})")
+                print(f"🔍 name: {profile.get('name')} (type: {type(profile.get('name'))})")
+                
                 summary_parts = ["1 individual traveler"]
                 
                 # Add individual preferences
                 if profile.get("travel_style"):
                     summary_parts.append(f"style: {profile['travel_style']}")
+                    print(f"✅ Added travel_style: {profile['travel_style']}")
+                else:
+                    print(f"❌ travel_style is empty/None")
                 
                 if profile.get("city"):
                     summary_parts.append(f"from: {profile['city']}")
+                    print(f"✅ Added city: {profile['city']}")
+                else:
+                    print(f"❌ city is empty/None")
                 
                 # Calculate age if available
                 if profile.get("birthdate"):
@@ -643,11 +778,18 @@ Select exactly 10 hotel IDs from the provided list."""
                         age = current_year - birth_year
                         if 0 < age < 120:
                             summary_parts.append(f"age: {age}")
+                            print(f"✅ Added age: {age}")
                     except:
+                        print(f"❌ Failed to parse birthdate: {profile.get('birthdate')}")
                         pass
+                else:
+                    print(f"❌ birthdate is empty/None")
                 
                 if profile.get("annual_income"):
                     summary_parts.append(f"income: {profile['annual_income']}")
+                    print(f"✅ Added income: {profile['annual_income']}")
+                else:
+                    print(f"❌ annual_income is empty/None")
                 
                 if profile.get("holiday_preferences"):
                     try:
@@ -656,13 +798,19 @@ Select exactly 10 hotel IDs from the provided list."""
                         else:
                             preferences = str(profile["holiday_preferences"])[:30]  # First 30 chars
                         summary_parts.append(f"prefers: {preferences}")
+                        print(f"✅ Added preferences: {preferences}")
                     except:
+                        print(f"❌ Failed to parse holiday_preferences: {profile.get('holiday_preferences')}")
                         pass
+                else:
+                    print(f"❌ holiday_preferences is empty/None")
                 
-                return ", ".join(summary_parts)
+                result = ", ".join(summary_parts)
+                print(f"🔍 Final profile summary: {result}")
+                return result
             
             else:
-                # Group travel summary
+                # Group travel summary (your existing code)
                 summary_parts = [f"{len(group_profiles)} group travelers"]
                 
                 # Collect group preferences
@@ -697,6 +845,9 @@ Select exactly 10 hotel IDs from the provided list."""
                 return ", ".join(summary_parts)
                 
         except Exception as e:
+            print(f"[ERROR] _create_profile_summary failed: {e}")
+            import traceback
+            traceback.print_exc()
             logger.warning(f"Error creating profile summary: {e}")
             return f"{len(group_profiles)} travelers" if group_profiles else "unknown travelers"
     
