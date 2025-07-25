@@ -731,9 +731,9 @@ Select exactly 10 hotel IDs from the provided list."""
                 "filtering_applied": False,
                 "reasoning": f"AI filtering error: {str(e)}"
             }
-
+        
     def _create_profile_summary(self, group_profiles: List[Dict[str, Any]]) -> str:
-        """Create concise profile summary for both individual travelers and groups"""
+        """Create comprehensive profile summary for both individual travelers and groups"""
         try:
             print(f"🔍 _create_profile_summary called with {len(group_profiles)} profiles")
             
@@ -746,23 +746,36 @@ Select exactly 10 hotel IDs from the provided list."""
                 profile = group_profiles[0]
                 print(f"🔍 Processing individual profile with keys: {list(profile.keys())}")
                 
-                # DEBUG: Print actual values
+                # DEBUG: Print actual values for all relevant fields
                 print(f"🔍 travel_style: {profile.get('travel_style')} (type: {type(profile.get('travel_style'))})")
                 print(f"🔍 city: {profile.get('city')} (type: {type(profile.get('city'))})")
                 print(f"🔍 annual_income: {profile.get('annual_income')} (type: {type(profile.get('annual_income'))})")
+                print(f"🔍 monthly_spending: {profile.get('monthly_spending')} (type: {type(profile.get('monthly_spending'))})")
                 print(f"🔍 holiday_preferences: {profile.get('holiday_preferences')} (type: {type(profile.get('holiday_preferences'))})")
                 print(f"🔍 birthdate: {profile.get('birthdate')} (type: {type(profile.get('birthdate'))})")
+                print(f"🔍 gender: {profile.get('gender')} (type: {type(profile.get('gender'))})")
+                print(f"🔍 employer: {profile.get('employer')} (type: {type(profile.get('employer'))})")
+                print(f"🔍 working_schedule: {profile.get('working_schedule')} (type: {type(profile.get('working_schedule'))})")
+                print(f"🔍 holiday_frequency: {profile.get('holiday_frequency')} (type: {type(profile.get('holiday_frequency'))})")
                 print(f"🔍 name: {profile.get('name')} (type: {type(profile.get('name'))})")
                 
                 summary_parts = ["1 individual traveler"]
                 
-                # Add individual preferences
+                # Add name if available
+                if profile.get("name"):
+                    summary_parts.append(f"named {profile['name']}")
+                    print(f"✅ Added name: {profile['name']}")
+                else:
+                    print(f"❌ name is empty/None")
+                
+                # Add travel style
                 if profile.get("travel_style"):
                     summary_parts.append(f"style: {profile['travel_style']}")
                     print(f"✅ Added travel_style: {profile['travel_style']}")
                 else:
                     print(f"❌ travel_style is empty/None")
                 
+                # Add location
                 if profile.get("city"):
                     summary_parts.append(f"from: {profile['city']}")
                     print(f"✅ Added city: {profile['city']}")
@@ -785,12 +798,49 @@ Select exactly 10 hotel IDs from the provided list."""
                 else:
                     print(f"❌ birthdate is empty/None")
                 
+                # Add gender
+                if profile.get("gender"):
+                    summary_parts.append(f"gender: {profile['gender']}")
+                    print(f"✅ Added gender: {profile['gender']}")
+                else:
+                    print(f"❌ gender is empty/None")
+                
+                # Add employment info
+                if profile.get("employer"):
+                    summary_parts.append(f"works at: {profile['employer']}")
+                    print(f"✅ Added employer: {profile['employer']}")
+                else:
+                    print(f"❌ employer is empty/None")
+                
+                # Add working schedule
+                if profile.get("working_schedule"):
+                    summary_parts.append(f"schedule: {profile['working_schedule']}")
+                    print(f"✅ Added working_schedule: {profile['working_schedule']}")
+                else:
+                    print(f"❌ working_schedule is empty/None")
+                
+                # Add holiday frequency
+                if profile.get("holiday_frequency"):
+                    summary_parts.append(f"travels: {profile['holiday_frequency']}")
+                    print(f"✅ Added holiday_frequency: {profile['holiday_frequency']}")
+                else:
+                    print(f"❌ holiday_frequency is empty/None")
+                
+                # Add financial information
                 if profile.get("annual_income"):
                     summary_parts.append(f"income: {profile['annual_income']}")
                     print(f"✅ Added income: {profile['annual_income']}")
                 else:
                     print(f"❌ annual_income is empty/None")
                 
+                # Add monthly spending budget
+                if profile.get("monthly_spending"):
+                    summary_parts.append(f"monthly budget: {profile['monthly_spending']}")
+                    print(f"✅ Added monthly_spending: {profile['monthly_spending']}")
+                else:
+                    print(f"❌ monthly_spending is empty/None")
+                
+                # Add preferences
                 if profile.get("holiday_preferences"):
                     try:
                         if isinstance(profile["holiday_preferences"], list):
@@ -806,16 +856,18 @@ Select exactly 10 hotel IDs from the provided list."""
                     print(f"❌ holiday_preferences is empty/None")
                 
                 result = ", ".join(summary_parts)
-                print(f"🔍 Final profile summary: {result}")
+                print(f"🔍 Final enhanced profile summary: {result}")
                 return result
             
             else:
-                # Group travel summary (your existing code)
+                # Group travel summary (enhanced version)
                 summary_parts = [f"{len(group_profiles)} group travelers"]
                 
-                # Collect group preferences
+                # Collect group data
                 styles = [p.get("travel_style") for p in group_profiles if p.get("travel_style")]
                 cities = [p.get("city") for p in group_profiles if p.get("city")]
+                employers = [p.get("employer") for p in group_profiles if p.get("employer")]
+                frequencies = [p.get("holiday_frequency") for p in group_profiles if p.get("holiday_frequency")]
                 
                 if styles:
                     unique_styles = list(set(styles[:3]))  # Up to 3 unique styles
@@ -824,6 +876,10 @@ Select exactly 10 hotel IDs from the provided list."""
                 if cities:
                     unique_cities = list(set(cities[:2]))  # Up to 2 unique cities
                     summary_parts.append(f"from: {unique_cities}")
+                
+                if frequencies:
+                    unique_frequencies = list(set(frequencies[:2]))  # Up to 2 unique frequencies
+                    summary_parts.append(f"travel frequency: {unique_frequencies}")
                 
                 # Group age range
                 ages = []
