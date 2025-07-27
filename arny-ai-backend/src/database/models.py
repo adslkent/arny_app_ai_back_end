@@ -57,12 +57,6 @@ class CabinClass(str, Enum):
     BUSINESS = "BUSINESS"
     FIRST = "FIRST"
 
-class TravelStyle(str, Enum):
-    """User travel style preferences"""
-    BUDGET = "budget"
-    COMFORT = "comfort"
-    LUXURY = "luxury"
-
 class BookingStatus(str, Enum):
     """Booking request status"""
     PENDING = "pending"
@@ -117,7 +111,6 @@ class UserProfile(TimestampMixin):
     
     # Travel Preferences
     holiday_preferences: Optional[List[str]] = Field(default_factory=list, description="Preferred holiday activities")
-    travel_style: Optional[TravelStyle] = Field(None, description="Travel style preference")
     
     # Group Information
     group_code: Optional[str] = Field(None, max_length=10, description="Group code for family/group travel")
@@ -240,7 +233,6 @@ class UserPreferences(TimestampMixin):
     accessibility_needs: Optional[List[str]] = Field(default_factory=list, description="Accessibility requirements")
     
     # Travel Style
-    travel_style: Optional[TravelStyle] = Field(None, description="Overall travel style")
     trip_types: Optional[List[str]] = Field(default_factory=list, description="Types of trips they prefer")
     
     # Notification Preferences
@@ -706,7 +698,6 @@ __all__ = [
     'UserRole', 
     'MessageType',
     'CabinClass',
-    'TravelStyle',
     'BookingStatus',
     'Gender',
     
