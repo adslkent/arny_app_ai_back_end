@@ -142,12 +142,11 @@ class SupervisorAgent:
             Annual Income: {user_profile.get('annual_income', 'Not provided')}
             Monthly Spending: {user_profile.get('monthly_spending', 'Not provided')}
             Holiday Preferences: {user_profile.get('holiday_preferences', [])}
-            Travel Style: {user_profile.get('travel_style', 'Not specified')}
             Group Code: {user_profile.get('group_code', 'None')}
             
             Use this profile information to personalize travel recommendations and responses.
             Always refer to the user by their name when possible and tailor suggestions to their preferences.
-            Consider their budget, travel style, holiday frequency, and preferred activities.
+            Consider their budget, holiday frequency, and preferred activities.
             """
         }
         
@@ -334,7 +333,6 @@ class SupervisorAgent:
         """
         
         user_name = user_profile.get('name', 'there')
-        travel_style = user_profile.get('travel_style', 'balanced')
         
         return f"""You are Arny, a friendly and professional AI travel assistant. You're chatting with {user_name}.
 
@@ -343,8 +341,6 @@ Your personality:
 - Professional but conversational
 - Proactive in offering travel-related assistance
 - Knowledgeable about destinations, travel tips, and planning
-
-User's travel style: {travel_style}
 
 Your capabilities:
 - Flight search and recommendations
