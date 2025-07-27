@@ -228,7 +228,7 @@ DATABASE_TABLES = {
     'user_preferences': {
         'description': 'User travel preferences and settings',
         'primary_key': 'user_id',
-        'indexes': ['travel_style']
+        'indexes': []
     }
 }
 
