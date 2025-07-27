@@ -564,11 +564,10 @@ class FlightAgent:
             Annual Income: {user_profile.get('annual_income', 'Not provided')}
             Monthly Spending: {user_profile.get('monthly_spending', 'Not provided')}
             Holiday Preferences: {user_profile.get('holiday_preferences', [])}
-            Travel Style: {user_profile.get('travel_style', 'Not specified')}
             Group Code: {user_profile.get('group_code', 'None')}
             
             Use this profile information to personalize flight recommendations.
-            Consider the user's travel style, budget (annual income and monthly spending), and preferences when suggesting flights.
+            Consider the user's budget (annual income and monthly spending), and preferences when suggesting flights.
             Take into account their holiday frequency to suggest appropriate booking timing.
             Always address the user by their name when possible.
             """
