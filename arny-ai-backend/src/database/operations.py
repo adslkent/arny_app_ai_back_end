@@ -281,7 +281,7 @@ class DatabaseOperations:
                             cleaned_updates[key] = cleaned_value
                     
                     elif key in ["name", "email", "gender", "city", "employer", "working_schedule", 
-                               "holiday_frequency", "annual_income", "monthly_spending", "travel_style", "group_code"]:
+                               "holiday_frequency", "annual_income", "monthly_spending", "group_code"]:
                         # Safe string fields
                         if isinstance(value, (str, int, float, bool)):
                             cleaned_updates[key] = str(value).strip() if isinstance(value, str) else value
@@ -458,7 +458,7 @@ class DatabaseOperations:
                 user_profile_fields = {
                     'name', 'gender', 'birthdate', 'city', 'employer',
                     'working_schedule', 'holiday_frequency', 'annual_income',
-                    'monthly_spending', 'holiday_preferences', 'travel_style',
+                    'monthly_spending', 'holiday_preferences',
                     'group_code', 'email', 'group_skipped'
                 }
                 
