@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS flight_searches CASCADE;
 DROP TABLE IF EXISTS chat_messages CASCADE;
 DROP TABLE IF EXISTS group_members CASCADE;
 DROP TABLE IF EXISTS onboarding_progress CASCADE;
-DROP TABLE IF EXISTS user_profiles CASCADE;
+DROP TABLE IF EXISTS user_profiles CASCADE;f
 
 -- Drop existing functions
 DROP FUNCTION IF EXISTS get_user_analytics(uuid, integer);
@@ -36,7 +36,6 @@ CREATE TABLE user_profiles (
     annual_income VARCHAR(255),
     monthly_spending VARCHAR(255),
     holiday_preferences JSONB DEFAULT '[]'::jsonb,
-    travel_style VARCHAR(50), -- 'budget', 'comfort', 'luxury'
     group_code VARCHAR(10),
     onboarding_completed BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
@@ -127,7 +126,6 @@ CREATE TABLE user_preferences (
     price_sensitivity VARCHAR(50),
     dietary_restrictions JSONB DEFAULT '[]'::jsonb,
     accessibility_needs JSONB DEFAULT '[]'::jsonb,
-    travel_style VARCHAR(50), -- 'budget', 'comfort', 'luxury'
     trip_types JSONB DEFAULT '[]'::jsonb,
     email_notifications BOOLEAN DEFAULT TRUE,
     push_notifications BOOLEAN DEFAULT TRUE,
