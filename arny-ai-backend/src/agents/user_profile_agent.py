@@ -747,7 +747,6 @@ Select exactly 10 hotel IDs from the provided list."""
                 print(f"🔍 Processing individual profile with keys: {list(profile.keys())}")
                 
                 # DEBUG: Print actual values for all relevant fields
-                print(f"🔍 travel_style: {profile.get('travel_style')} (type: {type(profile.get('travel_style'))})")
                 print(f"🔍 city: {profile.get('city')} (type: {type(profile.get('city'))})")
                 print(f"🔍 annual_income: {profile.get('annual_income')} (type: {type(profile.get('annual_income'))})")
                 print(f"🔍 monthly_spending: {profile.get('monthly_spending')} (type: {type(profile.get('monthly_spending'))})")
@@ -767,13 +766,6 @@ Select exactly 10 hotel IDs from the provided list."""
                     print(f"✅ Added name: {profile['name']}")
                 else:
                     print(f"❌ name is empty/None")
-                
-                # Add travel style
-                if profile.get("travel_style"):
-                    summary_parts.append(f"style: {profile['travel_style']}")
-                    print(f"✅ Added travel_style: {profile['travel_style']}")
-                else:
-                    print(f"❌ travel_style is empty/None")
                 
                 # Add location
                 if profile.get("city"):
@@ -873,14 +865,9 @@ Select exactly 10 hotel IDs from the provided list."""
                 summary_parts = [f"{len(group_profiles)} group travelers"]
                 
                 # Collect group data
-                styles = [p.get("travel_style") for p in group_profiles if p.get("travel_style")]
                 cities = [p.get("city") for p in group_profiles if p.get("city")]
                 employers = [p.get("employer") for p in group_profiles if p.get("employer")]
                 frequencies = [p.get("holiday_frequency") for p in group_profiles if p.get("holiday_frequency")]
-                
-                if styles:
-                    unique_styles = list(set(styles[:3]))  # Up to 3 unique styles
-                    summary_parts.append(f"styles: {unique_styles}")
                 
                 if cities:
                     unique_cities = list(set(cities[:2]))  # Up to 2 unique cities
