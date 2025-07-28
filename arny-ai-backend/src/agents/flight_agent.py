@@ -69,7 +69,7 @@ def _run_in_new_loop(coro):
 # ==================== AIRPORT CODE MAPPING ====================
 
 AIRPORT_CODE_MAPPING = {
-    # Major Australian cities
+    # ===== AUSTRALIA (Top 5) =====
     "sydney": "SYD",
     "melbourne": "MEL", 
     "brisbane": "BNE",
@@ -81,14 +81,18 @@ AIRPORT_CODE_MAPPING = {
     "cairns": "CNS",
     "hobart": "HBA",
 
-    # Major New Zealand cities
+    # ===== NEW ZEALAND (Top 5) =====
     "auckland": "AKL",
-    
-    # Major US cities  
-    "new york": "NYC",
+    "wellington": "WLG",
+    "christchurch": "CHC",
+    "queenstown": "ZQN",
+    "dunedin": "DUD",
+
+    # ===== UNITED STATES (Top 20) =====
+    "new york": "JFK",  # Primary NYC airport
     "los angeles": "LAX",
-    "chicago": "CHI",
-    "houston": "HOU",
+    "chicago": "ORD",
+    "houston": "IAH",
     "phoenix": "PHX",
     "philadelphia": "PHL",
     "san antonio": "SAT",
@@ -102,10 +106,10 @@ AIRPORT_CODE_MAPPING = {
     "indianapolis": "IND",
     "seattle": "SEA",
     "denver": "DEN",
-    "washington": "WAS",
+    "washington": "DCA",  # Primary Washington DC airport
+    "washington dc": "DCA",
     "boston": "BOS",
-    "el paso": "ELP",
-    "detroit": "DTT",
+    "detroit": "DTW",
     "nashville": "BNA",
     "portland": "PDX",
     "memphis": "MEM",
@@ -119,7 +123,6 @@ AIRPORT_CODE_MAPPING = {
     "fresno": "FAT",
     "sacramento": "SMF",
     "kansas city": "MCI",
-    "mesa": "AZA",
     "atlanta": "ATL",
     "colorado springs": "COS",
     "omaha": "OMA",
@@ -130,48 +133,388 @@ AIRPORT_CODE_MAPPING = {
     "oakland": "OAK",
     "minneapolis": "MSP",
     "wichita": "ICT",
-    "arlington": "DFW",
-    
-    # Major international cities
-    "london": "LHR",
-    "paris": "CDG", 
-    "tokyo": "NRT",
-    "beijing": "PEK",
-    "dubai": "DXB",
-    "singapore": "SIN",
-    "hong kong": "HKG",
-    "amsterdam": "AMS",
+
+    # ===== UNITED KINGDOM (Top 5) =====
+    "london": "LHR",  # Heathrow primary
+    "london heathrow": "LHR",
+    "london gatwick": "LGW",
+    "london stansted": "STN",
+    "london luton": "LTN",
+    "manchester": "MAN",
+    "birmingham": "BHX",
+    "edinburgh": "EDI",
+    "glasgow": "GLA",
+    "bristol": "BRS",
+
+    # ===== FRANCE (Top 5) =====
+    "paris": "CDG",  # Charles de Gaulle primary
+    "paris cdg": "CDG",
+    "paris orly": "ORY",
+    "lyon": "LYS",
+    "marseille": "MRS",
+    "nice": "NCE",
+    "toulouse": "TLS",
+
+    # ===== GERMANY (Top 5) =====
     "frankfurt": "FRA",
-    "istanbul": "IST",
+    "munich": "MUC",
+    "berlin": "BER",
+    "hamburg": "HAM",
+    "dusseldorf": "DUS",
+    "cologne": "CGN",
+    "stuttgart": "STR",
+
+    # ===== ITALY (Top 5) =====
+    "rome": "FCO",  # Fiumicino primary
+    "milan": "MXP",  # Malpensa primary
+    "milan malpensa": "MXP",
+    "milan linate": "LIN",
+    "venice": "VCE",
+    "naples": "NAP",
+    "bologna": "BLQ",
+    "genoa": "GOA",  # REQUESTED: Genoa, Italy
+    "florence": "FLR",
+    "turin": "TRN",
+
+    # ===== SPAIN (Top 5) =====
     "madrid": "MAD",
     "barcelona": "BCN",
-    "rome": "FCO",
-    "milan": "MXP",
-    "zurich": "ZUR",
-    "vienna": "VIE",
-    "brussels": "BRU",
-    "copenhagen": "CPH",
-    "stockholm": "ARN",
-    "oslo": "OSL",
-    "helsinki": "HEL",
-    "moscow": "SVO",
-    "mumbai": "BOM",
+    "seville": "SVQ",
+    "valencia": "VLC",
+    "bilbao": "BIO",
+    "palma": "PMI",
+    "malaga": "AGP",
+
+    # ===== NETHERLANDS (Top 5) =====
+    "amsterdam": "AMS",
+    "rotterdam": "RTM",
+    "eindhoven": "EIN",
+    "groningen": "GRQ",
+    "maastricht": "MST",
+
+    # ===== CANADA (Top 5) =====
+    "toronto": "YYZ",
+    "vancouver": "YVR",
+    "montreal": "YUL",
+    "calgary": "YYC",
+    "ottawa": "YOW",
+    "edmonton": "YEG",
+    "winnipeg": "YWG",
+
+    # ===== JAPAN (Top 5) =====
+    "tokyo": "NRT",  # Narita primary
+    "tokyo narita": "NRT",
+    "tokyo haneda": "HND",
+    "osaka": "KIX",  # Kansai primary
+    "osaka kansai": "KIX",
+    "osaka itami": "ITM",
+    "nagoya": "NGO",
+    "sapporo": "CTS",
+    "fukuoka": "FUK",
+
+    # ===== CHINA (Top 5) =====
+    "beijing": "PEK",
+    "shanghai": "PVG",  # Pudong primary
+    "shanghai pudong": "PVG",
+    "shanghai hongqiao": "SHA",
+    "guangzhou": "CAN",
+    "shenzhen": "SZX",
+    "chengdu": "CTU",
+
+    # ===== SOUTH KOREA (Top 5) =====
+    "seoul": "ICN",  # Incheon primary
+    "seoul incheon": "ICN",
+    "seoul gimpo": "GMP",
+    "busan": "PUS",
+    "jeju": "CJU",
+    "daegu": "TAE",
+
+    # ===== INDIA (Top 5) =====
     "delhi": "DEL",
-    "bangkok": "BKK",
-    "kuala lumpur": "KUL",
-    "jakarta": "CGK",
-    
-    # Common variations
-    "new york": "NYC",
-    "los angeles": "LAX",
-    "san francisco": "SFO",
-    "washington dc": "WAS",
-    "sao paulo": "SAO",
-    "rio de janeiro": "RIO",
-    "buenos aires": "BUE",
-    "hong kong": "HKG",
     "new delhi": "DEL",
+    "mumbai": "BOM",
+    "bangalore": "BLR",
+    "chennai": "MAA",
+    "hyderabad": "HYD",
+    "kolkata": "CCU",
+    "pune": "PNQ",
+
+    # ===== SINGAPORE =====
+    "singapore": "SIN",
+
+    # ===== HONG KONG =====
+    "hong kong": "HKG",
+
+    # ===== UAE (Top 5) =====
+    "dubai": "DXB",
+    "abu dhabi": "AUH",
+    "sharjah": "SHJ",
+    "ras al khaimah": "RKT",
+    "fujairah": "FJR",
+
+    # ===== THAILAND (Top 5) =====
+    "bangkok": "BKK",  # Suvarnabhumi primary
+    "bangkok suvarnabhumi": "BKK",
+    "bangkok don mueang": "DMK",
+    "phuket": "HKT",
+    "chiang mai": "CNX",
+    "koh samui": "USM",
+
+    # ===== MALAYSIA (Top 5) =====
     "kuala lumpur": "KUL",
+    "penang": "PEN",
+    "kota kinabalu": "BKI",
+    "kuching": "KCH",
+    "langkawi": "LGK",
+
+    # ===== INDONESIA (Top 5) =====
+    "jakarta": "CGK",
+    "bali": "DPS",  # Denpasar
+    "denpasar": "DPS",
+    "surabaya": "MLG",
+    "medan": "KNO",
+    "yogyakarta": "JOG",
+
+    # ===== PHILIPPINES (Top 5) =====
+    "manila": "MNL",
+    "cebu": "CEB",
+    "davao": "DVO",
+    "clark": "CRK",
+    "iloilo": "ILO",
+
+    # ===== VIETNAM (Top 5) =====
+    "ho chi minh city": "SGN",
+    "saigon": "SGN",
+    "hanoi": "HAN",
+    "da nang": "DAD",
+    "nha trang": "CXR",
+    "phu quoc": "PQC",
+
+    # ===== RUSSIA (Top 5) =====
+    "moscow": "SVO",  # Sheremetyevo primary
+    "moscow sheremetyevo": "SVO",
+    "moscow domodedovo": "DME",
+    "moscow vnukovo": "VKO",
+    "st petersburg": "LED",
+    "saint petersburg": "LED",
+    "novosibirsk": "OVB",
+    "yekaterinburg": "SVX",
+
+    # ===== BRAZIL (Top 5) =====
+    "sao paulo": "GRU",  # Guarulhos primary
+    "sao paulo guarulhos": "GRU",
+    "sao paulo congonhas": "CGH",
+    "rio de janeiro": "GIG",  # Galeão primary
+    "rio de janeiro galeao": "GIG",
+    "rio de janeiro santos dumont": "SDU",
+    "brasilia": "BSB",
+    "salvador": "SSA",
+    "fortaleza": "FOR",
+
+    # ===== ARGENTINA (Top 5) =====
+    "buenos aires": "EZE",  # Ezeiza primary
+    "buenos aires ezeiza": "EZE",
+    "buenos aires jorge newbery": "AEP",
+    "cordoba": "COR",
+    "mendoza": "MDZ",
+    "bariloche": "BRC",
+
+    # ===== MEXICO (Top 5) =====
+    "mexico city": "MEX",
+    "cancun": "CUN",
+    "guadalajara": "GDL",
+    "monterrey": "MTY",
+    "puerto vallarta": "PVR",
+
+    # ===== SOUTH AFRICA (Top 5) =====
+    "cape town": "CPT",
+    "johannesburg": "JNB",
+    "durban": "DUR",
+    "port elizabeth": "PLZ",
+    "bloemfontein": "BFN",
+
+    # ===== NIGERIA (Top 5) =====
+    "lagos": "LOS",  # REQUESTED: Lagos, Nigeria
+    "abuja": "ABV",
+    "kano": "KAN",
+    "port harcourt": "PHC",
+    "enugu": "ENU",
+
+    # ===== EGYPT (Top 5) =====
+    "cairo": "CAI",
+    "alexandria": "HBE",
+    "hurghada": "HRG",
+    "sharm el sheikh": "SSH",
+    "luxor": "LXR",
+
+    # ===== TURKEY (Top 5) =====
+    "istanbul": "IST",  # Istanbul Airport primary
+    "istanbul sabiha gokcen": "SAW",
+    "ankara": "ESB",
+    "antalya": "AYT",
+    "izmir": "ADB",
+
+    # ===== GREECE (Top 5) =====
+    "athens": "ATH",
+    "thessaloniki": "SKG",
+    "heraklion": "HER",
+    "rhodes": "RHO",
+    "corfu": "CFU",
+
+    # ===== ISRAEL (Top 5) =====
+    "tel aviv": "TLV",
+    "jerusalem": "JRS",
+    "eilat": "ETH",
+    "haifa": "HFA",
+    "ovda": "VDA",
+
+    # ===== SWITZERLAND (Top 5) =====
+    "zurich": "ZUR",
+    "geneva": "GVA",
+    "basel": "BSL",
+    "bern": "BRN",
+    "lugano": "LUG",
+
+    # ===== AUSTRIA (Top 5) =====
+    "vienna": "VIE",
+    "salzburg": "SZG",
+    "innsbruck": "INN",
+    "graz": "GRZ",
+    "linz": "LNZ",
+
+    # ===== BELGIUM (Top 5) =====
+    "brussels": "BRU",
+    "antwerp": "ANR",
+    "liege": "LGG",
+    "ostend": "OST",
+    "charleroi": "CRL",
+
+    # ===== DENMARK (Top 5) =====
+    "copenhagen": "CPH",
+    "billund": "BLL",
+    "aalborg": "AAL",
+    "aarhus": "AAR",
+    "esbjerg": "EBJ",
+
+    # ===== SWEDEN (Top 5) =====
+    "stockholm": "ARN",  # Arlanda primary
+    "stockholm arlanda": "ARN",
+    "stockholm bromma": "BMA",
+    "gothenburg": "GOT",
+    "malmo": "MMX",
+    "umea": "UME",
+
+    # ===== NORWAY (Top 5) =====
+    "oslo": "OSL",
+    "bergen": "BGO",
+    "trondheim": "TRD",
+    "stavanger": "SVG",
+    "tromso": "TOS",
+
+    # ===== FINLAND (Top 5) =====
+    "helsinki": "HEL",
+    "tampere": "TMP",
+    "turku": "TKU",
+    "oulu": "OUL",
+    "rovaniemi": "RVN",
+
+    # ===== POLAND (Top 5) =====
+    "warsaw": "WAW",
+    "krakow": "KRK",
+    "gdansk": "GDN",
+    "wroclaw": "WRO",
+    "poznan": "POZ",
+
+    # ===== CZECH REPUBLIC (Top 5) =====
+    "prague": "PRG",
+    "brno": "BRQ",
+    "ostrava": "OSR",
+    "karlovy vary": "KLV",
+    "pardubice": "PED",
+
+    # ===== HUNGARY (Top 5) =====
+    "budapest": "BUD",
+    "debrecen": "DEB",
+    "szeged": "QZD",
+    "pecs": "QPJ",
+    "miskolc": "MCQ",
+
+    # ===== ROMANIA (Top 5) =====
+    "bucharest": "OTP",  # Otopeni primary
+    "cluj napoca": "CLJ",
+    "timisoara": "TSR",
+    "iasi": "IAS",
+    "constanta": "CND",
+
+    # ===== CROATIA (Top 5) =====
+    "zagreb": "ZAG",
+    "split": "SPU",
+    "dubrovnik": "DBV",
+    "pula": "PUY",
+    "zadar": "ZAD",
+
+    # ===== SERBIA (Top 5) =====
+    "belgrade": "BEG",
+    "nis": "INI",
+    "novi sad": "QND",
+    "kragujevac": "KGJ",
+    "subotica": "QSU",
+
+    # ===== MONTENEGRO (Top 5) =====
+    "podgorica": "TGD",  # REQUESTED: Podgorica, Montenegro
+    "tivat": "TIV",
+    "niksic": "NIK",
+    "bar": "BAR",
+    "pljevlja": "PLJ",
+
+    # ===== BULGARIA (Top 5) =====
+    "sofia": "SOF",
+    "plovdiv": "PDV",
+    "varna": "VAR",
+    "burgas": "BOJ",
+    "ruse": "ROU",
+
+    # ===== CHILE (Top 5) =====
+    "santiago": "SCL",
+    "valparaiso": "VAP",
+    "concepcion": "CCP",
+    "antofagasta": "ANF",
+    "iquique": "IQQ",
+
+    # ===== PERU (Top 5) =====
+    "lima": "LIM",
+    "cusco": "CUZ",
+    "arequipa": "AQP",
+    "trujillo": "TRU",
+    "iquitos": "IQT",
+
+    # ===== COLOMBIA (Top 5) =====
+    "bogota": "BOG",
+    "medellin": "MDE",
+    "cartagena": "CTG",
+    "cali": "CLO",
+    "barranquilla": "BAQ",
+
+    # ===== ECUADOR (Top 5) =====
+    "quito": "UIO",
+    "guayaquil": "GYE",
+    "cuenca": "CUE",
+    "manta": "MEC",
+    "loja": "LOH",
+
+    # ===== VENEZUELA (Top 5) =====
+    "caracas": "CCS",
+    "maracaibo": "MAR",
+    "valencia": "VLN",
+    "barquisimeto": "BRM",
+    "puerto ordaz": "PZO",
+
+    # Common city variations and aliases
+    "nyc": "JFK",
+    "la": "LAX",
+    "sf": "SFO",
+    "dc": "DCA",
+    "chi": "ORD",
 }
 
 # ==================== STANDALONE TOOL FUNCTIONS ====================
