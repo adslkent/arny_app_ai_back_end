@@ -143,6 +143,7 @@ CITY_CODE_MAPPING = {
     "perth": "PER",
     "adelaide": "ADL",
     "canberra": "CBR",
+    "auckland": "AKL",
     "dubai": "DXB",
     "rome": "ROM",
     "madrid": "MAD",
@@ -297,7 +298,7 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
         
         # Search hotels using Amadeus
         search_params = {
-            "destination": city_code,
+            "city_code": city_code,
             "check_in_date": check_in_date,
             "check_out_date": check_out_date,
             "adults": adults,
@@ -313,33 +314,47 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
             }
         
         print(f"🔍 Found {len(hotels)} hotels from Amadeus API")
-        
+
         # Create HotelSearch record
         search_id = str(uuid.uuid4())
+        
+        # Extract results from response (similar to flight agent fix)
+        if isinstance(hotels, dict):
+            hotel_results = hotels.get("results", [])
+        else:
+            hotel_results = hotels if hotels else []
+        
         hotel_search = HotelSearch(
             search_id=search_id,
             user_id=hotel_agent.current_user_id,
             session_id=hotel_agent.current_session_id,
-            destination=city_code,
+            city_code=city_code,  # FIXED: Use city_code field name (not destination)
             check_in_date=check_in_date,
             check_out_date=check_out_date,
             adults=adults,
             rooms=rooms,
-            search_results=hotels
+            search_results=hotel_results  # FIXED: Extract just the results list
         )
         
         # Save search to database (async)
         run_async(hotel_agent.db.save_hotel_search(hotel_search))
-        
+
         # Apply profile filtering to hotels
-        original_count = len(hotels)
-        filtered_hotels, filtering_applied, rationale = run_async(
-            hotel_agent.profile_agent.filter_hotels_for_group(
-                hotels, 
-                hotel_agent.user_profile, 
-                max_results=10
+        original_count = len(hotel_results)
+
+        # FIXED: Call the correct method on UserProfileAgent with proper parameters
+        filter_result = run_async(
+            hotel_agent.profile_agent.filter_hotel_results(
+                user_id=hotel_agent.current_user_id,
+                hotel_results=hotel_results,
+                search_params=search_params
             )
         )
+
+        # FIXED: Extract data from the returned dictionary structure
+        filtered_hotels = filter_result.get("filtered_results", hotel_results[:10])
+        filtering_applied = filter_result.get("filtering_applied", False)
+        rationale = filter_result.get("reasoning", "Applied personalized filtering based on your profile")
         
         filtered_count = len(filtered_hotels)
         
