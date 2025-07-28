@@ -80,6 +80,9 @@ AIRPORT_CODE_MAPPING = {
     "gold coast": "OOL",
     "cairns": "CNS",
     "hobart": "HBA",
+
+    # Major New Zealand cities
+    "auckland": "AKL",
     
     # Major US cities  
     "new york": "NYC",
