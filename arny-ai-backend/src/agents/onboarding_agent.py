@@ -560,6 +560,15 @@ class OnboardingAgent:
                 "   - If the group DOES NOT EXIST: Tell them the group doesn't exist and ask them to check the group code and try again, or type 'skip' to skip joining a group for now.\n"
                 "   - If they say 'skip', 'no', 'none', or 'later', use skip_joining_group_tool ONLY ONCE.\n"
                 "   - IMPORTANT: When a user skips joining a group, NEVER mention any specific group code to them. Just say that group joining has been skipped and they can join a group later.\n\n"
+                "CRITICAL SEQUENTIAL ORDER RULE:\n"
+                "After completing step 1 (JOINING A GROUP), you MUST proceed through the remaining onboarding steps in this exact order:\n"
+                "2. EMAIL SCANNING → 3. PERSONAL INFORMATION → 4. JOB DETAILS → 5. FINANCIAL INFORMATION → 6. HOLIDAY PREFERENCES → 7. GROUP INVITATIONS (if applicable)\n\n"
+                "When a user skips joining a group:\n"
+                "A. Use skip_joining_group_tool ONLY ONCE\n"
+                "B. Acknowledge that group joining has been skipped\n"
+                "C. IMMEDIATELY proceed to step 2 (EMAIL SCANNING) - do NOT mention group invitations at all\n"
+                "D. Complete steps 2-6 in sequential order\n"
+                "E. Only after ALL steps 2-6 are complete, then proceed to step 7 (GROUP INVITATIONS) if the user has group_role = 'admin'\n\n"
                 "2. EMAIL SCANNING:\n"
                 "   Ask about the user's Gmail or Outlook address, then use scan_email_for_profile_tool "
                 "to fetch name, gender, birthdate, and city. IMPORTANT: If email scanning fails or returns an error, "
@@ -578,7 +587,7 @@ class OnboardingAgent:
                 "   Collect: Annual Income, Monthly Spending Budget. Use store_financial_info_tool.\n\n"
                 "6. HOLIDAY PREFERENCES:\n"
                 "   Collect: Preferred holiday types, destinations, activities. Use store_holiday_preferences_tool.\n\n"
-                "7. GROUP INVITATIONS (ONLY if user has group_role = 'admin'):\n"
+                "7. GROUP INVITATIONS (ONLY if user has group_role = 'admin' AND all previous steps 2-6 are completely finished):\n"
                 "   - If the user joined an existing group under step '1. JOINING A GROUP' above (ie. group_role = 'member'), SKIP this step 7 entirely.\n"
                 "   - If the user skipped joining a group under step '1. JOINING A GROUP' above (ie. group_role = 'admin'), ask: 'Would you like to invite people to join your new group? This can always be done later.' "
                 "If the user says yes to inviting people to join a group, respond with 'Please invite users to your new group by providing their email addresses.' "
@@ -598,6 +607,8 @@ class OnboardingAgent:
                 "NEVER reveal specific group codes to users when they skip joining a group. "
                 "ALWAYS use the appropriate store_*_tool when users provide information to ensure it gets saved. "
                 "Handle email scanning failures gracefully without making the user feel like something is broken."
+                "ALWAYS follow the sequential order: steps 2-6 must be completely finished before step 7, regardless of group_role."
+                "NEVER mention group invitations or jump to step 7 until ALL previous steps are complete."
             ),
             model="o4-mini",
             tools=[
