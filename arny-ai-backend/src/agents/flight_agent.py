@@ -1042,6 +1042,13 @@ Tomorrow: {tomorrow}
 Airport code examples:
 {airport_mappings}
 
+AMBIGUOUS CITY HANDLING WITH MOST RECENT CONTEXT PRIORITY:
+- If a user requests flights to a city without specifying the country, first check the conversation history for the MOST RECENT previous flight or hotel search to that same city name
+- Look through the conversation history from newest to oldest and find the most recent occurrence where the user specified the country for that city
+- Use the country from that MOST RECENT occurrence for the current request
+- If no previous context is found, or if the most recent previous context is also ambiguous, then ask the user to provide the country name first before proceeding with any search
+- Once the country is determined (either from most recent context or user clarification), proceed with the appropriate flight search
+
 Key rules:
 1. ALWAYS use search_flights_tool for ANY flight search request
 2. If no return date is provided, search for one-way flights
