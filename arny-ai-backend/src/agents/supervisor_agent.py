@@ -27,6 +27,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from openai import OpenAI
+from agents import Agent, Runner, WebSearchTool
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -161,6 +162,11 @@ class SupervisorAgent:
         # 3. Combine: profile first, then conversation
         return [profile_context] + conversation_context
     
+    @openai_api_retry
+    async def _run_agent_with_retry(self, agent, input_data):
+        """Run agent with retry logic applied"""
+        return await Runner.run(agent, input_data)
+    
     async def process_message(self, user_id: str, message: str, session_id: str,
                             user_profile: Dict[str, Any], conversation_history: list) -> Dict[str, Any]:
         """
@@ -187,7 +193,7 @@ class SupervisorAgent:
                     user_id, message, session_id, user_profile, conversation_history
                 )
             else:
-                print("💬 Handling as general conversation")
+                print("💬 Handling as general conversation with web search capability")
                 return await self._handle_general_conversation_no_timeout(
                     user_id, message, session_id, user_profile, conversation_history
                 )
@@ -279,28 +285,40 @@ class SupervisorAgent:
         """
         
         try:
-            print(f"💬 Handling general conversation for: '{message[:50]}...'")
-            
+            print(f"💬 Handling general conversation with web search capability for: '{message[:50]}...'")
+
+            # Create agent with WebSearchTool capability
+            general_agent = Agent(
+                name="Arny General Assistant",
+                instructions=self._get_general_conversation_system_prompt(user_profile),
+                model="o4-mini",
+                tools=[WebSearchTool()]
+            )
+
             # Build context with profile + recent conversation
             full_context = await self._build_context_with_profile(user_profile, conversation_history)
-            
+
+            # Convert context to string format for Agents SDK
+            conversation_context = []
+            for ctx in full_context:
+                conversation_context.append(f"{ctx['role']}: {ctx['content']}")
+
             # Add current user message
-            full_context.append({"role": "user", "content": message})
-            
+            conversation_context.append(f"user: {message}")
+
+            # Create input for the agent (use last 10 messages for context)
+            agent_input = "\n".join(conversation_context[-50:])
+
             print(f"🔧 Built context with profile + {len(conversation_history[-50:])} conversation messages")
-            
-            # Call OpenAI with retry logic
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",  # Use efficient model for general conversation
-                messages=full_context,
-                temperature=0.7,
-                max_tokens=1000
-            )
-            
-            assistant_message = response.choices[0].message.content
-            
+
+            # Run agent with retry logic using Agents SDK
+            result = await self._run_agent_with_retry(general_agent, agent_input)
+
+            # Extract the response
+            assistant_message = result.final_output if hasattr(result, 'final_output') else str(result)
+
             print(f"✅ General conversation response generated: '{assistant_message[:50]}...'")
-            
+
             return {
                 "message": assistant_message,
                 "agent_type": "supervisor",
@@ -310,15 +328,16 @@ class SupervisorAgent:
                 "filtering_info": {},
                 "metadata": {
                     "agent_type": "supervisor",
-                    "conversation_type": "general",
-                    "model_used": "gpt-4o-mini"
+                    "conversation_type": "general_with_web_search",
+                    "model_used": "o4-mini",
+                    "web_search_available": True
                 }
             }
-            
+        
         except Exception as e:
             print(f"❌ Error in general conversation: {e}")
             return {
-                "message": "I'm here to help you with travel planning. You can ask me about flights, hotels, or general travel questions!",
+                "message": "I'm here to help you with travel planning. You can ask me about flights, hotels, or general questions!",
                 "agent_type": "supervisor",
                 "error": str(e),
                 "requires_action": False,
@@ -329,7 +348,7 @@ class SupervisorAgent:
     
     def _get_general_conversation_system_prompt(self, user_profile: Dict[str, Any]) -> str:
         """
-        Generate system prompt for general conversation based on user profile
+        Generate enhanced system prompt for general conversation with web search capability
         """
         
         user_name = user_profile.get('name', 'there')
@@ -341,6 +360,7 @@ Your personality:
 - Professional but conversational
 - Proactive in offering travel-related assistance
 - Knowledgeable about destinations, travel tips, and planning
+- Use WebSearchTool whenever you need current information to provide accurate answers
 
 Your capabilities:
 - Flight search and recommendations
@@ -348,6 +368,8 @@ Your capabilities:
 - General travel advice and planning
 - Destination information
 - Travel tips and insights
+- For questions requiring current information (weather, news, travel advisories, current events, 
+  recent policy changes, etc.), use WebSearchTool to get accurate, up-to-date information
 
 Guidelines:
 1. Be conversational and friendly
