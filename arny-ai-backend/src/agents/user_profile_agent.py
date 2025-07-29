@@ -572,7 +572,7 @@ class UserProfileAgent:
 TRAVELER PROFILE: {profile_summary}
 
 FLIGHT OPTIONS ({len(flights)} total):
-{json.dumps(flights[:30], indent=2)}
+{json.dumps(flights, indent=2)}
 
 TASK: Select the best 10 flights from the provided options based on the traveler profile.
 
@@ -659,7 +659,7 @@ Select exactly 10 flight IDs from the provided list."""
 TRAVELER PROFILE: {profile_summary}
 
 HOTEL OPTIONS ({len(hotels)} total):
-{json.dumps(hotels[:30], indent=2)}
+{json.dumps(hotels, indent=2)}
 
 TASK: Select the best 10 hotels from the provided options based on the traveler profile.
 
