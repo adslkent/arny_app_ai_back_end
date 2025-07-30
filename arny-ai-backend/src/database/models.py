@@ -441,7 +441,6 @@ class HotelSearch(BaseModelWithId):
     Stores hotel search parameters and results.
     Maps to the 'hotel_searches' table in Supabase.
     """
-    search_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Hotel search UUID")
     user_id: str = Field(..., description="Supabase user UUID")
     session_id: Optional[str] = Field(None, description="Chat session UUID")
     
