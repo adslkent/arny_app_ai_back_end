@@ -743,9 +743,6 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
             }
         
         print(f"🔍 Found {len(hotels)} hotels from Amadeus API")
-
-        # Create HotelSearch record
-        search_id = str(uuid.uuid4())
         
         # Extract results from response (similar to flight agent fix)
         if isinstance(hotels, dict):
@@ -754,7 +751,6 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
             hotel_results = hotels if hotels else []
         
         hotel_search = HotelSearch(
-            search_id=search_id,
             user_id=hotel_agent.current_user_id,
             session_id=hotel_agent.current_session_id,
             city_code=city_code,  # FIXED: Use city_code field name (not destination)
@@ -794,7 +790,7 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
         
         # Store results in agent for response
         hotel_agent.latest_search_results = filtered_hotels
-        hotel_agent.latest_search_id = search_id
+        hotel_agent.latest_search_id = hotel_search.id
         hotel_agent.latest_filtering_info = {
             "original_count": original_count,
             "filtered_count": filtered_count,
@@ -822,7 +818,7 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
             "success": True,
             "results": filtered_hotels,
             "formatted_results": formatted_results,
-            "search_id": hotel_search.search_id,
+            "search_id": hotel_search.id,
             "search_params": search_params,
             "filtering_info": {
                 "original_count": original_count,
