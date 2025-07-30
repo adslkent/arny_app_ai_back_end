@@ -742,13 +742,13 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
                 "message": f"No hotels found for {destination} from {check_in_date} to {check_out_date}."
             }
         
-        print(f"🔍 Found {len(hotels)} hotels from Amadeus API")
-        
         # Extract results from response (similar to flight agent fix)
         if isinstance(hotels, dict):
             hotel_results = hotels.get("results", [])
         else:
             hotel_results = hotels if hotels else []
+
+        print(f"🔍 Found {len(hotel_results)} hotels from Amadeus API")
         
         hotel_search = HotelSearch(
             user_id=hotel_agent.current_user_id,
