@@ -683,39 +683,83 @@ Select up to 10 hotel IDs from the provided list. You may select fewer if less t
                 model="o4-mini",
                 input=prompt
             )
+        
+            # FIXED: Correct parsing for OpenAI Responses API based on the logs
+            ai_response = None
             
             if response and hasattr(response, 'output') and response.output:
-                for output_item in response.output:
-                    if hasattr(output_item, 'content') and output_item.content:
-                        for content_item in output_item.content:
-                            if hasattr(content_item, 'text') and content_item.text:
-                                ai_response = content_item.text.strip()
-
-                                # ADD THIS DEBUG LINE:
-                                print(f"🔍 AI Hotel Response: {ai_response}")
-                                
-                                try:
-                                    result = json.loads(ai_response)
-                                    selected_ids = result.get("selected_hotel_ids", [])
-                                    reasoning = result.get("reasoning", "AI filtering applied")
+                print(f"🔍 Response output type: {type(response.output)}, length: {len(response.output) if isinstance(response.output, list) else 'N/A'}")
+                
+                # The output is a list with ResponseReasoningItem and ResponseOutputMessage
+                if isinstance(response.output, list):
+                    for i, output_item in enumerate(response.output):
+                        print(f"🔍 Output item {i} type: {type(output_item)}")
+                        
+                        # Look for ResponseOutputMessage (contains the actual response)
+                        if hasattr(output_item, 'content') and output_item.content:
+                            print(f"🔍 Found content in output item {i}")
+                            
+                            if isinstance(output_item.content, list):
+                                for j, content_item in enumerate(output_item.content):
+                                    print(f"🔍 Content item {j} type: {type(content_item)}")
                                     
-                                    # Map selected IDs back to original hotels
-                                    filtered_hotels = []
-                                    for hotel_id in selected_ids[:10]:  # Ensure max 10
-                                        if 1 <= hotel_id <= len(original_hotels):
-                                            filtered_hotels.append(original_hotels[hotel_id - 1])
-                                    
-                                    print(f"✅ AI filtered to {len(filtered_hotels)} hotels")
-                                    
-                                    return {
-                                        "filtered_results": filtered_hotels,
-                                        "total_results": len(original_hotels),
-                                        "filtering_applied": True,
-                                        "reasoning": reasoning
-                                    }
-                                    
-                                except json.JSONDecodeError:
-                                    logger.warning("AI response was not valid JSON")
+                                    # Look for the text content
+                                    if hasattr(content_item, 'text') and content_item.text:
+                                        ai_response = content_item.text.strip()
+                                        print(f"🔍 FOUND AI Response in output[{i}].content[{j}].text: {ai_response}")
+                                        break
+                            
+                            if ai_response:
+                                break
+            
+            # Additional fallback: check if response has direct text attribute
+            if not ai_response and hasattr(response, 'text') and response.text:
+                ai_response = response.text.strip()
+                print(f"🔍 Fallback - Found AI Response in response.text: {ai_response}")
+            
+            print(f"🔍 Final extracted AI Hotel Response: {ai_response}")
+            
+            if ai_response and ai_response.strip():
+                try:
+                    # Clean the response if it has extra text
+                    response_text = ai_response.strip()
+                    
+                    # Try to extract JSON if it's embedded in other text
+                    if '{' in response_text and '}' in response_text:
+                        start_idx = response_text.find('{')
+                        end_idx = response_text.rfind('}') + 1
+                        json_text = response_text[start_idx:end_idx]
+                        print(f"🔍 Extracted JSON text: {json_text}")
+                    else:
+                        json_text = response_text
+                    
+                    result = json.loads(json_text)
+                    selected_ids = result.get("selected_hotel_ids", [])
+                    reasoning = result.get("reasoning", "AI filtering applied")
+                    
+                    print(f"🔍 Parsed result - selected_ids: {selected_ids}, reasoning: {reasoning}")
+                    
+                    # Map selected IDs back to original hotels
+                    filtered_hotels = []
+                    for hotel_id in selected_ids[:10]:  # Ensure max 10
+                        if 1 <= hotel_id <= len(original_hotels):
+                            filtered_hotels.append(original_hotels[hotel_id - 1])
+                    
+                    print(f"✅ AI filtered to {len(filtered_hotels)} hotels")
+                    
+                    return {
+                        "filtered_results": filtered_hotels,
+                        "total_results": len(original_hotels),
+                        "filtering_applied": True,
+                        "reasoning": reasoning
+                    }
+                    
+                except json.JSONDecodeError as e:
+                    logger.warning(f"AI response was not valid JSON: {ai_response}, Error: {str(e)}")
+                    print(f"❌ JSON parsing failed: {str(e)}")
+            else:
+                logger.warning("No AI response text extracted from response object")
+                print("❌ No AI response text found")
             
             # Fallback if AI filtering fails
             print("❌ AI filtering failed, returning top 10 hotels")
@@ -728,12 +772,13 @@ Select up to 10 hotel IDs from the provided list. You may select fewer if less t
             
         except Exception as e:
             logger.error(f"Error in AI hotel filtering: {e}")
+            print(f"❌ Exception in AI filtering: {str(e)}")
             return {
                 "filtered_results": original_hotels[:10],
                 "total_results": len(original_hotels),
                 "filtering_applied": False,
                 "reasoning": f"AI filtering error: {str(e)}"
-            }
+            }        
         
     def _create_profile_summary(self, group_profiles: List[Dict[str, Any]]) -> str:
         """Create comprehensive profile summary for both individual travelers and groups"""
