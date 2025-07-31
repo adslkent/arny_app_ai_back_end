@@ -341,97 +341,292 @@ class AmadeusService:
 
     @amadeus_critical_retry
     async def search_hotels(self, city_code: str, check_in_date: str, check_out_date: str,
-                          adults: int = 1, rooms: int = 1, max_results: int = 50) -> Dict[str, Any]:
+                        adults: int = 1, rooms: int = 1, max_results: int = 50) -> Dict[str, Any]:
         """
-        Search for hotels using Amadeus Hotel Search API with comprehensive retry strategies
+        Search for hotels using multiple Amadeus Hotel API approaches with comprehensive error handling
+        """
+        logger.info(f"🏨 Starting hotel search for {city_code} with multiple approaches")
+        
+        # Try multiple approaches to find hotels
+        approaches = [
+            self._search_hotels_approach_1,  # Direct hotel offers by city
+            self._search_hotels_approach_2,  # Two-step: hotel list + offers
+            self._search_hotels_approach_3,  # Geocode-based search
+        ]
+        
+        for i, approach in enumerate(approaches, 1):
+            try:
+                logger.info(f"🔄 Trying hotel search approach {i} for {city_code}")
+                result = await approach(city_code, check_in_date, check_out_date, adults, rooms, max_results)
+                
+                if result.get("success") and result.get("results"):
+                    # SUCCESS LOGGING
+                    approach_name = result.get("meta", {}).get("approach", f"approach_{i}")
+                    hotel_count = len(result["results"])
+                    logger.info(f"✅ Hotel search approach {i} ({approach_name}) SUCCESS: {hotel_count} hotels found for {city_code}")
+                    print(f"✅ Hotel search approach {i} ({approach_name}) SUCCESS: {hotel_count} hotels found for {city_code}")
+                    return result
+                else:
+                    # FAILURE LOGGING
+                    error_msg = result.get('error', 'No error message')
+                    logger.warning(f"⚠️ Hotel search approach {i} FAILED for {city_code}: {error_msg}")
+                    print(f"⚠️ Hotel search approach {i} FAILED for {city_code}: {error_msg}")
+                    
+            except Exception as e:
+                # EXCEPTION LOGGING
+                logger.error(f"❌ Hotel search approach {i} EXCEPTION for {city_code}: {str(e)}")
+                print(f"❌ Hotel search approach {i} EXCEPTION for {city_code}: {str(e)}")
+                continue
+        
+        # If all approaches fail, return a structured error
+        logger.error(f"❌ ALL hotel search approaches FAILED for {city_code}")
+        print(f"❌ ALL hotel search approaches FAILED for {city_code}")
+        
+        return {
+            "success": False,
+            "error": f"All hotel search approaches failed for city {city_code}. This might be an API issue or invalid city code.",
+            "results": [],
+            "suggestions": [
+                "Try searching with a different city name",
+                "Check if the dates are valid and in the future",
+                "Try again in a few minutes as this might be a temporary API issue"
+            ]
+        }
+
+    async def _search_hotels_approach_1(self, city_code: str, check_in_date: str, check_out_date: str,
+                                    adults: int, rooms: int, max_results: int) -> Dict[str, Any]:
+        """
+        Approach 1: Try direct city-based hotel search using different endpoint patterns
         """
         try:
-            logger.info(f"Searching hotels in {city_code} with retry strategies")
+            # Try different potential endpoint structures
+            endpoints_to_try = [
+                # Try the standard hotel offers endpoint with city code
+                lambda: self.client.shopping.hotel_offers_search.get(
+                    cityCode=city_code,
+                    checkInDate=check_in_date,
+                    checkOutDate=check_out_date,
+                    adults=adults,
+                    roomQuantity=rooms
+                ),
+            ]
             
-            # First, get hotel list by city
+            for endpoint_func in endpoints_to_try:
+                try:
+                    response = endpoint_func()
+                    if hasattr(response, 'data') and response.data:
+                        hotel_offers = []
+                        for hotel_data in response.data[:max_results]:
+                            formatted_offer = self._format_hotel_offer(hotel_data)
+                            hotel_offers.append(formatted_offer)
+                        
+                        return {
+                            "success": True,
+                            "results": hotel_offers,
+                            "meta": {
+                                "count": len(hotel_offers),
+                                "approach": "direct_city_search"
+                            }
+                        }
+                except Exception as e:
+                    logger.warning(f"Direct city search variant failed: {str(e)}")
+                    continue
+            
+            return {"success": False, "error": "Direct city search not available", "results": []}
+            
+        except Exception as e:
+            return {"success": False, "error": f"Approach 1 failed: {str(e)}", "results": []}
+
+    async def _search_hotels_approach_2(self, city_code: str, check_in_date: str, check_out_date: str,
+                                    adults: int, rooms: int, max_results: int) -> Dict[str, Any]:
+        """
+        Approach 2: Traditional two-step approach with enhanced error handling and logging
+        """
+        try:
+            logger.info(f"🔄 Approach 2: Two-step hotel search for {city_code}")
+            
+            # Step 1: Get hotel list by city
+            logger.info(f"Step 1: Getting hotel list for city {city_code}")
             hotels_response = self.client.reference_data.locations.hotels.by_city.get(
                 cityCode=city_code
             )
             
             if not hasattr(hotels_response, 'data') or not hotels_response.data:
+                logger.warning(f"⚠️ Approach 2 Step 1 FAILED: No hotels found for city code {city_code}")
                 return {
                     "success": False,
                     "error": f"No hotels found for city code: {city_code}",
                     "results": []
                 }
             
-            # Extract hotel IDs (limit to max_results for offers search)
-            hotel_ids = [hotel['hotelId'] for hotel in hotels_response.data[:max_results]]
+            # Extract hotel IDs with better error handling
+            hotel_ids = []
+            for hotel in hotels_response.data[:max_results]:
+                if isinstance(hotel, dict) and 'hotelId' in hotel:
+                    hotel_ids.append(hotel['hotelId'])
+                else:
+                    logger.warning(f"Invalid hotel data structure: {hotel}")
             
-            # Search for hotel offers
+            if not hotel_ids:
+                logger.warning(f"⚠️ Approach 2 Step 1 FAILED: No valid hotel IDs found for city {city_code}")
+                return {
+                    "success": False,
+                    "error": f"No valid hotel IDs found for city {city_code}",
+                    "results": []
+                }
+            
+            logger.info(f"Step 2: Searching offers for {len(hotel_ids)} hotels in {city_code}")
+            
+            # Step 2: Get hotel offers with enhanced parameter validation
             search_params = {
-                'hotelIds': ','.join(hotel_ids),
+                'hotelIds': ','.join(hotel_ids[:20]),  # Limit to 20 hotels to avoid API limits
                 'checkInDate': check_in_date,
                 'checkOutDate': check_out_date,
-                'adults': adults,
-                'roomQuantity': rooms
+                'adults': str(adults),  # Ensure string format
+                'roomQuantity': str(rooms)  # Ensure string format
             }
+            
+            # Add logging for debugging
+            logger.info(f"Hotel offers search params: {search_params}")
             
             offers_response = self.client.shopping.hotel_offers_search.get(**search_params)
             
-            # Process and format results
+            # Process results
             hotel_offers = []
             if hasattr(offers_response, 'data') and offers_response.data:
                 for hotel_data in offers_response.data:
                     formatted_offer = self._format_hotel_offer(hotel_data)
                     hotel_offers.append(formatted_offer)
             
-            result = {
+            logger.info(f"✅ Approach 2 SUCCESS: Found {len(hotel_offers)} hotel offers for {city_code}")
+            
+            return {
                 "success": True,
                 "results": hotel_offers,
                 "meta": {
                     "count": len(hotel_offers),
+                    "approach": "two_step_search",
+                    "hotel_ids_found": len(hotel_ids),
                     "search_params": search_params
                 }
             }
             
-            # Validate response structure
-            try:
-                AmadeusSearchResponse(**result)
-                # Validate sample hotel offers
-                if hotel_offers:
-                    AmadeusHotelOffer(**hotel_offers[0])
-                logger.info(f"Hotel search successful: {len(hotel_offers)} results found")
-            except ValidationError as ve:
-                logger.warning(f"Hotel search response validation failed: {ve}")
-                return {
-                    "success": False,
-                    "error": f"Response validation failed: {str(ve)}",
-                    "results": []
-                }
-            
-            return result
-            
         except ResponseError as e:
-            error_msg = f"Amadeus hotel search API error: {str(e)}"
-            logger.error(error_msg)
+            error_msg = f"Amadeus hotel search API error in approach 2: {str(e)}"
+            logger.error(f"❌ Approach 2 AMADEUS ERROR for {city_code}: {error_msg}")
             
-            # Properly extract status code from Response object
+            # Extract more detailed error information
             status_code = 'unknown'
-            if hasattr(e, 'response') and hasattr(e.response, 'status_code'):
-                status_code = str(e.response.status_code)
+            error_details = str(e)
+            if hasattr(e, 'response'):
+                if hasattr(e.response, 'status_code'):
+                    status_code = str(e.response.status_code)
+                if hasattr(e.response, 'text'):
+                    error_details = e.response.text
             
             return {
                 "success": False,
                 "error": error_msg,
                 "error_code": status_code,
+                "error_details": error_details,
                 "results": []
             }
             
         except Exception as e:
-            error_msg = f"Unexpected hotel search error: {str(e)}"
-            logger.error(error_msg)
+            logger.error(f"❌ Approach 2 EXCEPTION for {city_code}: {str(e)}")
+            return {"success": False, "error": f"Approach 2 failed: {str(e)}", "results": []}
+
+    async def _search_hotels_approach_3(self, city_code: str, check_in_date: str, check_out_date: str,
+                                    adults: int, rooms: int, max_results: int) -> Dict[str, Any]:
+        """
+        Approach 3: Enhanced geocode-based hotel search with larger radius and more hotels
+        """
+        try:
+            # ENHANCED: City code to coordinates mapping for major cities
+            city_coordinates = {
+                'NYC': {'latitude': 40.7128, 'longitude': -74.0060},
+                'LON': {'latitude': 51.5074, 'longitude': -0.1278},
+                'PAR': {'latitude': 48.8566, 'longitude': 2.3522},
+                'TYO': {'latitude': 35.6762, 'longitude': 139.6503},
+                'LAX': {'latitude': 34.0522, 'longitude': -118.2437},
+                'SYD': {'latitude': -33.8688, 'longitude': 151.2093},
+                'BKK': {'latitude': 13.7563, 'longitude': 100.5018},
+                'SIN': {'latitude': 1.3521, 'longitude': 103.8198},
+                'DXB': {'latitude': 25.2048, 'longitude': 55.2708},
+                'HKG': {'latitude': 22.3193, 'longitude': 114.1694}
+            }
+            
+            coords = city_coordinates.get(city_code)
+            if not coords:
+                return {"success": False, "error": f"No coordinates available for city {city_code}", "results": []}
+            
+            logger.info(f"Trying ENHANCED geocode search for {city_code} at {coords}")
+            
+            # FIXED: Use larger radius and get more hotels
+            hotels_response = self.client.reference_data.locations.hotels.by_geocode.get(
+                latitude=coords['latitude'],
+                longitude=coords['longitude'],
+                radius=100,  # INCREASED: 100km radius instead of 50km
+                radiusUnit='KM'  # Explicit radius unit
+            )
+            
+            if not hasattr(hotels_response, 'data') or not hotels_response.data:
+                return {"success": False, "error": "No hotels found by geocode", "results": []}
+            
+            logger.info(f"Geocode search found {len(hotels_response.data)} hotels")
+            
+            # FIXED: Get more hotel IDs and process in batches if needed
+            all_hotel_ids = [hotel['hotelId'] for hotel in hotels_response.data]
+            logger.info(f"Available hotel IDs: {len(all_hotel_ids)}")
+            
+            # Process hotels in batches to avoid API limits
+            all_hotel_offers = []
+            batch_size = 20  # Process 20 hotels at a time
+            
+            for i in range(0, min(len(all_hotel_ids), max_results), batch_size):
+                batch_hotel_ids = all_hotel_ids[i:i+batch_size]
+                logger.info(f"Processing batch {i//batch_size + 1}: {len(batch_hotel_ids)} hotels")
+                
+                try:
+                    search_params = {
+                        'hotelIds': ','.join(batch_hotel_ids),
+                        'checkInDate': check_in_date,
+                        'checkOutDate': check_out_date,
+                        'adults': str(adults),
+                        'roomQuantity': str(rooms)
+                    }
+                    
+                    offers_response = self.client.shopping.hotel_offers_search.get(**search_params)
+                    
+                    if hasattr(offers_response, 'data') and offers_response.data:
+                        for hotel_data in offers_response.data:
+                            formatted_offer = self._format_hotel_offer(hotel_data)
+                            all_hotel_offers.append(formatted_offer)
+                            
+                    logger.info(f"Batch {i//batch_size + 1} found {len(offers_response.data) if hasattr(offers_response, 'data') and offers_response.data else 0} offers")
+                    
+                except Exception as batch_error:
+                    logger.warning(f"Batch {i//batch_size + 1} failed: {batch_error}")
+                    continue
+            
+            logger.info(f"Total hotel offers found: {len(all_hotel_offers)}")
             
             return {
-                "success": False,
-                "error": error_msg,
-                "results": []
+                "success": True,
+                "results": all_hotel_offers,
+                "meta": {
+                    "count": len(all_hotel_offers),
+                    "approach": "enhanced_geocode_search",
+                    "coordinates": coords,
+                    "radius": "100km",
+                    "batches_processed": (min(len(all_hotel_ids), max_results) + batch_size - 1) // batch_size,
+                    "total_hotels_available": len(all_hotel_ids)
+                }
             }
+            
+        except Exception as e:
+            logger.error(f"Enhanced approach 3 failed: {str(e)}")
+            return {"success": False, "error": f"Enhanced approach 3 failed: {str(e)}", "results": []}      
 
     @amadeus_critical_retry
     async def get_hotel_offers(self, hotel_id: str, check_in_date: str, check_out_date: str,
