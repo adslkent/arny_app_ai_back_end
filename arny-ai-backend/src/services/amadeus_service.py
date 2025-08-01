@@ -539,11 +539,12 @@ class AmadeusService:
     async def _search_hotels_approach_3(self, city_code: str, check_in_date: str, check_out_date: str,
                                     adults: int, rooms: int, max_results: int) -> Dict[str, Any]:
         """
-        Approach 3: Enhanced geocode-based hotel search with larger radius and more hotels
+        Approach 3: Enhanced geocode-based hotel search with comprehensive city coverage
         """
         try:
             # ENHANCED: City code to coordinates mapping for major cities
             city_coordinates = {
+                # ===== EXISTING CITIES (KEEP THESE) =====
                 'NYC': {'latitude': 40.7128, 'longitude': -74.0060},
                 'LON': {'latitude': 51.5074, 'longitude': -0.1278},
                 'PAR': {'latitude': 48.8566, 'longitude': 2.3522},
@@ -553,8 +554,444 @@ class AmadeusService:
                 'BKK': {'latitude': 13.7563, 'longitude': 100.5018},
                 'SIN': {'latitude': 1.3521, 'longitude': 103.8198},
                 'DXB': {'latitude': 25.2048, 'longitude': 55.2708},
-                'HKG': {'latitude': 22.3193, 'longitude': 114.1694}
-            }
+                'HKG': {'latitude': 22.3193, 'longitude': 114.1694},
+                
+                # ===== AUSTRALIA =====
+                'MEL': {'latitude': -37.8136, 'longitude': 144.9631},
+                'BNE': {'latitude': -27.4698, 'longitude': 153.0251},
+                'PER': {'latitude': -31.9505, 'longitude': 115.8605},
+                'ADL': {'latitude': -34.9285, 'longitude': 138.6007},
+                'DRW': {'latitude': -12.4634, 'longitude': 130.8456},
+                'CBR': {'latitude': -35.2809, 'longitude': 149.1300},
+                'OOL': {'latitude': -28.1642, 'longitude': 153.5062},
+                'CNS': {'latitude': -16.9186, 'longitude': 145.7781},
+                'HBA': {'latitude': -42.8821, 'longitude': 147.3272},
+                
+                # ===== NEW ZEALAND =====
+                'AKL': {'latitude': -36.8485, 'longitude': 174.7633},
+                'WLG': {'latitude': -41.2865, 'longitude': 174.7762},
+                'CHC': {'latitude': -43.5321, 'longitude': 172.6362},
+                'ZQN': {'latitude': -45.0312, 'longitude': 168.6626},
+                'DUD': {'latitude': -45.8788, 'longitude': 170.5028},
+                
+                # ===== UNITED STATES =====
+                'CHI': {'latitude': 41.8781, 'longitude': -87.6298},
+                'HOU': {'latitude': 29.7604, 'longitude': -95.3698},
+                'PHX': {'latitude': 33.4484, 'longitude': -112.0740},
+                'PHL': {'latitude': 39.9526, 'longitude': -75.1652},
+                'SAT': {'latitude': 29.4241, 'longitude': -98.4936},
+                'SAN': {'latitude': 32.7157, 'longitude': -117.1611},
+                'DFW': {'latitude': 32.7767, 'longitude': -96.7970},
+                'SJC': {'latitude': 37.3382, 'longitude': -121.8863},
+                'AUS': {'latitude': 30.2672, 'longitude': -97.7431},
+                'CMH': {'latitude': 39.9612, 'longitude': -82.9988},
+                'CLT': {'latitude': 35.2271, 'longitude': -80.8431},
+                'SFO': {'latitude': 37.7749, 'longitude': -122.4194},
+                'IND': {'latitude': 39.7684, 'longitude': -86.1581},
+                'SEA': {'latitude': 47.6062, 'longitude': -122.3321},
+                'DEN': {'latitude': 39.7392, 'longitude': -104.9903},
+                'WAS': {'latitude': 38.9072, 'longitude': -77.0369},
+                'BOS': {'latitude': 42.3601, 'longitude': -71.0589},
+                'DTT': {'latitude': 42.3314, 'longitude': -83.0458},
+                'BNA': {'latitude': 36.1627, 'longitude': -86.7816},
+                'PDX': {'latitude': 45.5152, 'longitude': -122.6784},
+                'MEM': {'latitude': 35.1495, 'longitude': -90.0490},
+                'OKC': {'latitude': 35.4676, 'longitude': -97.5164},
+                'LAS': {'latitude': 36.1699, 'longitude': -115.1398},
+                'SDF': {'latitude': 38.2527, 'longitude': -85.7585},
+                'BWI': {'latitude': 39.2904, 'longitude': -76.6122},
+                'MKE': {'latitude': 43.0389, 'longitude': -87.9065},
+                'ABQ': {'latitude': 35.0844, 'longitude': -106.6504},
+                'TUS': {'latitude': 32.2226, 'longitude': -110.9747},
+                'FAT': {'latitude': 36.7378, 'longitude': -119.7871},
+                'SMF': {'latitude': 38.5816, 'longitude': -121.4944},
+                'MCI': {'latitude': 39.0997, 'longitude': -94.5786},
+                'ATL': {'latitude': 33.7490, 'longitude': -84.3880},
+                'COS': {'latitude': 38.8339, 'longitude': -104.8214},
+                'OMA': {'latitude': 41.2524, 'longitude': -95.9980},
+                'RDU': {'latitude': 35.7796, 'longitude': -78.6382},
+                'MIA': {'latitude': 25.7617, 'longitude': -80.1918},
+                'CLE': {'latitude': 41.4993, 'longitude': -81.6944},
+                'TUL': {'latitude': 36.1540, 'longitude': -95.9928},
+                'OAK': {'latitude': 37.8044, 'longitude': -122.2712},
+                'MSP': {'latitude': 44.9778, 'longitude': -93.2650},
+                'ICT': {'latitude': 37.6872, 'longitude': -97.3301},
+                
+                # ===== UNITED KINGDOM =====
+                'MAN': {'latitude': 53.4808, 'longitude': -2.2426},
+                'BHX': {'latitude': 52.4862, 'longitude': -1.8904},
+                'EDI': {'latitude': 55.9533, 'longitude': -3.1883},
+                'GLA': {'latitude': 55.8642, 'longitude': -4.2518},
+                'BRS': {'latitude': 51.4545, 'longitude': -2.5879},
+                'LPL': {'latitude': 53.4084, 'longitude': -2.9916},
+                'LDS': {'latitude': 53.8008, 'longitude': -1.5491},
+                'SHF': {'latitude': 53.3811, 'longitude': -1.4701},
+                'NCL': {'latitude': 54.9783, 'longitude': -1.6178},
+                
+                # ===== FRANCE =====
+                'LYS': {'latitude': 45.7640, 'longitude': 4.8357},
+                'MRS': {'latitude': 43.2965, 'longitude': 5.3698},
+                'NCE': {'latitude': 43.7102, 'longitude': 7.2620},
+                'TLS': {'latitude': 43.6047, 'longitude': 1.4442},
+                'SXB': {'latitude': 48.5734, 'longitude': 7.7521},
+                'BOD': {'latitude': 44.8378, 'longitude': -0.5792},
+                'LIL': {'latitude': 50.6292, 'longitude': 3.0573},
+                'NTE': {'latitude': 47.2184, 'longitude': -1.5536},
+                'MPL': {'latitude': 43.6108, 'longitude': 3.8767},
+                
+                # ===== GERMANY =====
+                'BER': {'latitude': 52.5200, 'longitude': 13.4050},
+                'MUC': {'latitude': 48.1351, 'longitude': 11.5820},
+                'FRA': {'latitude': 50.1109, 'longitude': 8.6821},
+                'HAM': {'latitude': 53.5511, 'longitude': 9.9937},
+                'CGN': {'latitude': 50.9375, 'longitude': 6.9603},
+                'STR': {'latitude': 48.7758, 'longitude': 9.1829},
+                'DUS': {'latitude': 51.2277, 'longitude': 6.7735},
+                'DTM': {'latitude': 51.5136, 'longitude': 7.4653},
+                'ESS': {'latitude': 51.4556, 'longitude': 7.0116},
+                'LEJ': {'latitude': 51.3397, 'longitude': 12.3731},
+                
+                # ===== ITALY =====
+                'ROM': {'latitude': 41.9028, 'longitude': 12.4964},
+                'MIL': {'latitude': 45.4642, 'longitude': 9.1900},
+                'NAP': {'latitude': 40.8518, 'longitude': 14.2681},
+                'TRN': {'latitude': 45.0703, 'longitude': 7.6869},
+                'PMO': {'latitude': 38.1157, 'longitude': 13.3613},
+                'GOA': {'latitude': 44.4056, 'longitude': 8.9463},
+                'BLQ': {'latitude': 44.4949, 'longitude': 11.3426},
+                'FLR': {'latitude': 43.7696, 'longitude': 11.2558},
+                'BRI': {'latitude': 41.1171, 'longitude': 16.8719},
+                'CTA': {'latitude': 37.5079, 'longitude': 15.0830},
+                
+                # ===== SPAIN =====
+                'MAD': {'latitude': 40.4168, 'longitude': -3.7038},
+                'BCN': {'latitude': 41.3851, 'longitude': 2.1734},
+                'VLC': {'latitude': 39.4699, 'longitude': -0.3763},
+                'SVQ': {'latitude': 37.3891, 'longitude': -5.9845},
+                'ZAZ': {'latitude': 41.6488, 'longitude': -0.8891},
+                'AGP': {'latitude': 36.7213, 'longitude': -4.4214},
+                'MJV': {'latitude': 37.9922, 'longitude': -1.1307},
+                'PMI': {'latitude': 39.5696, 'longitude': 2.6502},
+                'LPA': {'latitude': 28.0916, 'longitude': -15.4509},
+                'BIO': {'latitude': 43.2627, 'longitude': -2.9253},
+                
+                # ===== NETHERLANDS =====
+                'AMS': {'latitude': 52.3676, 'longitude': 4.9041},
+                'RTM': {'latitude': 51.9244, 'longitude': 4.4777},
+                'HAG': {'latitude': 52.0705, 'longitude': 4.3007},
+                'UTC': {'latitude': 52.0907, 'longitude': 5.1214},
+                'EIN': {'latitude': 51.4416, 'longitude': 5.4697},
+                
+                # ===== CANADA =====
+                'YTO': {'latitude': 43.6532, 'longitude': -79.3832},
+                'YMQ': {'latitude': 45.5017, 'longitude': -73.5673},
+                'YVR': {'latitude': 49.2827, 'longitude': -123.1207},
+                'YYC': {'latitude': 51.0447, 'longitude': -114.0719},
+                'YOW': {'latitude': 45.4215, 'longitude': -75.6972},
+                'YEG': {'latitude': 53.5444, 'longitude': -113.4909},
+                'YWG': {'latitude': 49.8951, 'longitude': -97.1384},
+                'YQB': {'latitude': 46.8139, 'longitude': -71.2080},
+                'YHM': {'latitude': 43.2557, 'longitude': -79.8711},
+                'YXU': {'latitude': 43.0321, 'longitude': -81.1509},
+                
+                # ===== JAPAN =====
+                'OSA': {'latitude': 34.6937, 'longitude': 135.5023},
+                'KYO': {'latitude': 35.0116, 'longitude': 135.7681},
+                'NGO': {'latitude': 35.1815, 'longitude': 136.9066},
+                'SPK': {'latitude': 43.0642, 'longitude': 141.3469},
+                'FUK': {'latitude': 33.5904, 'longitude': 130.4017},
+                'SDJ': {'latitude': 38.2682, 'longitude': 140.8694},
+                'HIJ': {'latitude': 34.3853, 'longitude': 132.4553},
+                'OKA': {'latitude': 26.2123, 'longitude': 127.6792},
+                'UKB': {'latitude': 34.6901, 'longitude': 135.1956},
+                
+                # ===== CHINA =====
+                'BJS': {'latitude': 39.9042, 'longitude': 116.4074},
+                'SHA': {'latitude': 31.2304, 'longitude': 121.4737},
+                'CAN': {'latitude': 23.1291, 'longitude': 113.2644},
+                'SZX': {'latitude': 22.5431, 'longitude': 114.0579},
+                'CTU': {'latitude': 30.5728, 'longitude': 104.0668},
+                'XIY': {'latitude': 34.3416, 'longitude': 108.9398},
+                'HGH': {'latitude': 30.2741, 'longitude': 120.1551},
+                'NKG': {'latitude': 32.0603, 'longitude': 118.7969},
+                'WUH': {'latitude': 30.5928, 'longitude': 114.3055},
+                'CKG': {'latitude': 29.5630, 'longitude': 106.5516},
+                
+                # ===== SOUTH KOREA =====
+                'SEL': {'latitude': 37.5665, 'longitude': 126.9780},
+                'PUS': {'latitude': 35.1796, 'longitude': 129.0756},
+                'INC': {'latitude': 37.4563, 'longitude': 126.7052},
+                'TAE': {'latitude': 35.8714, 'longitude': 128.6014},
+                'KWJ': {'latitude': 35.1595, 'longitude': 126.8526},
+                
+                # ===== INDIA =====
+                'BOM': {'latitude': 19.0760, 'longitude': 72.8777},
+                'DEL': {'latitude': 28.7041, 'longitude': 77.1025},
+                'BLR': {'latitude': 12.9716, 'longitude': 77.5946},
+                'MAA': {'latitude': 13.0827, 'longitude': 80.2707},
+                'HYD': {'latitude': 17.3850, 'longitude': 78.4867},
+                'CCU': {'latitude': 22.5726, 'longitude': 88.3639},
+                'PNQ': {'latitude': 18.5204, 'longitude': 73.8567},
+                'AMD': {'latitude': 23.0225, 'longitude': 72.5714},
+                'JAI': {'latitude': 26.9124, 'longitude': 75.7873},
+                
+                # ===== UAE =====
+                'AUH': {'latitude': 24.4539, 'longitude': 54.3773},
+                'SHJ': {'latitude': 25.3463, 'longitude': 55.4209},
+                'AJM': {'latitude': 25.4052, 'longitude': 55.5136},
+                'RKT': {'latitude': 25.7893, 'longitude': 55.9777},
+                
+                # ===== THAILAND =====
+                'HKT': {'latitude': 7.8804, 'longitude': 98.3923},
+                'CNX': {'latitude': 18.7883, 'longitude': 98.9853},
+                'UTP': {'latitude': 12.9236, 'longitude': 100.8824},
+                'USM': {'latitude': 9.5578, 'longitude': 100.0608},
+                
+                # ===== MALAYSIA =====
+                'KUL': {'latitude': 3.1390, 'longitude': 101.6869},
+                'PEN': {'latitude': 5.4164, 'longitude': 100.3327},
+                'JHB': {'latitude': 1.4927, 'longitude': 103.7414},
+                'BKI': {'latitude': 5.9749, 'longitude': 116.0724},
+                'KCH': {'latitude': 1.5533, 'longitude': 110.3592},
+                
+                # ===== INDONESIA =====
+                'JKT': {'latitude': -6.2088, 'longitude': 106.8456},
+                'DPS': {'latitude': -8.3405, 'longitude': 115.0920},
+                'MLG': {'latitude': -7.2575, 'longitude': 112.7521},
+                'BDO': {'latitude': -6.9175, 'longitude': 107.6191},
+                
+                # ===== PHILIPPINES =====
+                'MNL': {'latitude': 14.5995, 'longitude': 120.9842},
+                'CEB': {'latitude': 10.3157, 'longitude': 123.8854},
+                'DVO': {'latitude': 7.1907, 'longitude': 125.4553},
+                'ILO': {'latitude': 10.7202, 'longitude': 122.5621},
+                'CGY': {'latitude': 8.4542, 'longitude': 124.6319},
+                
+                # ===== VIETNAM =====
+                'SGN': {'latitude': 10.8231, 'longitude': 106.6297},
+                'HAN': {'latitude': 21.0285, 'longitude': 105.8542},
+                'DAD': {'latitude': 16.0471, 'longitude': 108.2068},
+                'HUI': {'latitude': 16.4637, 'longitude': 107.5909},
+                
+                # ===== RUSSIA =====
+                'MOW': {'latitude': 55.7558, 'longitude': 37.6173},
+                'LED': {'latitude': 59.9311, 'longitude': 30.3609},
+                'OVB': {'latitude': 55.0084, 'longitude': 82.9357},
+                'SVX': {'latitude': 56.8431, 'longitude': 60.6454},
+                
+                # ===== BRAZIL =====
+                'SAO': {'latitude': -23.5505, 'longitude': -46.6333},
+                'RIO': {'latitude': -22.9068, 'longitude': -43.1729},
+                'BSB': {'latitude': -15.7975, 'longitude': -47.8919},
+                'SSA': {'latitude': -12.9714, 'longitude': -38.5014},
+                'FOR': {'latitude': -3.7319, 'longitude': -38.5267},
+                'BHZ': {'latitude': -19.9167, 'longitude': -43.9345},
+                'MAO': {'latitude': -3.1190, 'longitude': -60.0217},
+                'CWB': {'latitude': -25.4284, 'longitude': -49.2733},
+                'REC': {'latitude': -8.0476, 'longitude': -34.8770},
+                'POA': {'latitude': -30.0346, 'longitude': -51.2177},
+                
+                # ===== ARGENTINA =====
+                'BUE': {'latitude': -34.6118, 'longitude': -58.3960},
+                'COR': {'latitude': -31.4201, 'longitude': -64.1888},
+                'ROS': {'latitude': -32.9442, 'longitude': -60.6505},
+                'MDZ': {'latitude': -32.8895, 'longitude': -68.8458},
+                'LPL': {'latitude': -34.9215, 'longitude': -57.9545},
+                
+                # ===== MEXICO =====
+                'MEX': {'latitude': 19.4326, 'longitude': -99.1332},
+                'GDL': {'latitude': 20.6597, 'longitude': -103.3496},
+                'MTY': {'latitude': 25.6866, 'longitude': -100.3161},
+                'PBC': {'latitude': 19.0414, 'longitude': -98.2063},
+                'TIJ': {'latitude': 32.5027, 'longitude': -117.0039},
+                'BJX': {'latitude': 21.1212, 'longitude': -101.6835},
+                'CJS': {'latitude': 31.6904, 'longitude': -106.4245},
+                'TRC': {'latitude': 25.5428, 'longitude': -103.4068},
+                'MID': {'latitude': 20.9674, 'longitude': -89.5926},
+                'CUN': {'latitude': 21.1619, 'longitude': -86.8515},
+                
+                # ===== SOUTH AFRICA =====
+                'JNB': {'latitude': -26.2041, 'longitude': 28.0473},
+                'CPT': {'latitude': -33.9249, 'longitude': 18.4241},
+                'DUR': {'latitude': -29.8587, 'longitude': 31.0218},
+                'WDH': {'latitude': -22.5609, 'longitude': 17.0658},
+                'PLZ': {'latitude': -33.9608, 'longitude': 25.6022},
+                
+                # ===== NIGERIA =====
+                'LOS': {'latitude': 6.5244, 'longitude': 3.3792},
+                'ABV': {'latitude': 9.0579, 'longitude': 7.4951},
+                'KAN': {'latitude': 11.9756, 'longitude': 8.5264},
+                'IBA': {'latitude': 7.3775, 'longitude': 3.9470},
+                'PHC': {'latitude': 4.7514, 'longitude': 7.0128},
+                
+                # ===== EGYPT =====
+                'CAI': {'latitude': 30.0444, 'longitude': 31.2357},
+                'ALY': {'latitude': 31.2001, 'longitude': 29.9187},
+                'SPX': {'latitude': 29.9773, 'longitude': 31.1325},
+                'LXR': {'latitude': 25.6872, 'longitude': 32.6396},
+                'ASW': {'latitude': 24.0889, 'longitude': 32.8998},
+                
+                # ===== TURKEY =====
+                'IST': {'latitude': 41.0082, 'longitude': 28.9784},
+                'ESB': {'latitude': 39.9334, 'longitude': 32.8597},
+                'ADB': {'latitude': 38.4192, 'longitude': 27.1287},
+                'AYT': {'latitude': 36.8969, 'longitude': 30.7133},
+                'BTZ': {'latitude': 40.1826, 'longitude': 29.0669},
+                
+                # ===== GREECE =====
+                'ATH': {'latitude': 37.9838, 'longitude': 23.7275},
+                'SKG': {'latitude': 40.6401, 'longitude': 22.9444},
+                'GPA': {'latitude': 38.2466, 'longitude': 21.7346},
+                'HER': {'latitude': 35.3387, 'longitude': 25.1442},
+                'LRA': {'latitude': 39.6390, 'longitude': 22.4194},
+                
+                # ===== ISRAEL =====
+                'TLV': {'latitude': 32.0853, 'longitude': 34.7818},
+                'JRS': {'latitude': 31.7683, 'longitude': 35.2137},
+                'HFA': {'latitude': 32.7940, 'longitude': 34.9896},
+                'BEV': {'latitude': 31.2530, 'longitude': 34.7915},
+                'ASD': {'latitude': 31.8014, 'longitude': 34.6446},
+                
+                # ===== SWITZERLAND =====
+                'ZUR': {'latitude': 47.3769, 'longitude': 8.5417},
+                'GVA': {'latitude': 46.2044, 'longitude': 6.1432},
+                'BSL': {'latitude': 47.5596, 'longitude': 7.5886},
+                'BRN': {'latitude': 46.9481, 'longitude': 7.4474},
+                'QLS': {'latitude': 46.5197, 'longitude': 6.6323},
+                
+                # ===== AUSTRIA =====
+                'VIE': {'latitude': 48.2082, 'longitude': 16.3738},
+                'SZG': {'latitude': 47.8095, 'longitude': 13.0550},
+                'INN': {'latitude': 47.2692, 'longitude': 11.4041},
+                'GRZ': {'latitude': 47.0707, 'longitude': 15.4395},
+                'LNZ': {'latitude': 48.3069, 'longitude': 14.2858},
+                
+                # ===== BELGIUM =====
+                'BRU': {'latitude': 50.8503, 'longitude': 4.3517},
+                'ANR': {'latitude': 51.2194, 'longitude': 4.4025},
+                'GNE': {'latitude': 51.0500, 'longitude': 3.7303},
+                'CRL': {'latitude': 50.4108, 'longitude': 4.4446},
+                'BRG': {'latitude': 51.2093, 'longitude': 3.2247},
+                
+                # ===== DENMARK =====
+                'CPH': {'latitude': 55.6761, 'longitude': 12.5683},
+                'AAR': {'latitude': 56.1629, 'longitude': 10.2039},
+                'ODE': {'latitude': 55.4038, 'longitude': 10.4024},
+                'AAL': {'latitude': 57.0488, 'longitude': 9.9217},
+                'EBJ': {'latitude': 55.4760, 'longitude': 8.4380},
+                
+                # ===== SWEDEN =====
+                'STO': {'latitude': 59.3293, 'longitude': 18.0686},
+                'GOT': {'latitude': 57.7089, 'longitude': 11.9746},
+                'MMX': {'latitude': 55.6050, 'longitude': 13.0038},
+                'UPP': {'latitude': 59.8586, 'longitude': 17.6389},
+                'VST': {'latitude': 59.6099, 'longitude': 16.5448},
+                
+                # ===== NORWAY =====
+                'OSL': {'latitude': 59.9139, 'longitude': 10.7522},
+                'BGO': {'latitude': 60.3913, 'longitude': 5.3221},
+                'TRD': {'latitude': 63.4305, 'longitude': 10.3951},
+                'SVG': {'latitude': 58.9700, 'longitude': 5.7331},
+                'KRS': {'latitude': 58.1467, 'longitude': 7.9956},
+                
+                # ===== FINLAND =====
+                'HEL': {'latitude': 60.1699, 'longitude': 24.9384},
+                'ESP': {'latitude': 60.2055, 'longitude': 24.6559},
+                'TMP': {'latitude': 61.4991, 'longitude': 23.7871},
+                'VAN': {'latitude': 60.2934, 'longitude': 25.0408},
+                'TKU': {'latitude': 60.4518, 'longitude': 22.2666},
+                
+                # ===== POLAND =====
+                'WAW': {'latitude': 52.2297, 'longitude': 21.0122},
+                'KRK': {'latitude': 50.0647, 'longitude': 19.9450},
+                'LCJ': {'latitude': 51.7592, 'longitude': 19.4560},
+                'WRO': {'latitude': 51.1079, 'longitude': 17.0385},
+                'POZ': {'latitude': 52.4064, 'longitude': 16.9252},
+                
+                # ===== CZECH REPUBLIC =====
+                'PRG': {'latitude': 50.0755, 'longitude': 14.4378},
+                'BRQ': {'latitude': 49.1951, 'longitude': 16.6068},
+                'OSR': {'latitude': 49.8209, 'longitude': 18.2625},
+                'PLZ': {'latitude': 49.7384, 'longitude': 13.3736},
+                'LBC': {'latitude': 50.7663, 'longitude': 15.0543},
+                
+                # ===== HUNGARY =====
+                'BUD': {'latitude': 47.4979, 'longitude': 19.0402},
+                'DEB': {'latitude': 47.5316, 'longitude': 21.6273},
+                'SZD': {'latitude': 46.2530, 'longitude': 20.1414},
+                'MCQ': {'latitude': 48.1034, 'longitude': 20.7784},
+                'PCS': {'latitude': 46.0727, 'longitude': 18.2330},
+                
+                # ===== ROMANIA =====
+                'BUH': {'latitude': 44.4268, 'longitude': 26.1025},
+                'CLJ': {'latitude': 46.7712, 'longitude': 23.6236},
+                'TSR': {'latitude': 45.7489, 'longitude': 21.2087},
+                'IAS': {'latitude': 47.1585, 'longitude': 27.6014},
+                'CND': {'latitude': 44.1598, 'longitude': 28.6348},
+                
+                # ===== CROATIA =====
+                'ZAG': {'latitude': 45.8150, 'longitude': 15.9819},
+                'SPU': {'latitude': 43.5081, 'longitude': 16.4402},
+                'RJK': {'latitude': 45.3271, 'longitude': 14.4422},
+                'OSI': {'latitude': 45.5550, 'longitude': 18.6955},
+                'ZAD': {'latitude': 44.1194, 'longitude': 15.2314},
+                
+                # ===== SERBIA =====
+                'BEG': {'latitude': 44.7866, 'longitude': 20.4489},
+                'QND': {'latitude': 45.2671, 'longitude': 19.8335},
+                'INI': {'latitude': 43.3209, 'longitude': 21.8958},
+                'KGJ': {'latitude': 44.0122, 'longitude': 20.9111},
+                'QSU': {'latitude': 46.1717, 'longitude': 19.6669},
+                
+                # ===== MONTENEGRO =====
+                'TGD': {'latitude': 42.4304, 'longitude': 19.2594},
+                'TIV': {'latitude': 42.4047, 'longitude': 18.7230},
+                'BDV': {'latitude': 42.2864, 'longitude': 18.8400},
+                'BAR': {'latitude': 42.0941, 'longitude': 19.0905},
+                'NIK': {'latitude': 42.7731, 'longitude': 18.9447},
+                
+                # ===== BULGARIA =====
+                'SOF': {'latitude': 42.6977, 'longitude': 23.3219},
+                'PDV': {'latitude': 42.1354, 'longitude': 24.7453},
+                'VAR': {'latitude': 43.2141, 'longitude': 27.9147},
+                'BOJ': {'latitude': 42.4939, 'longitude': 27.4721},
+                'ROU': {'latitude': 43.8563, 'longitude': 25.9700},
+                
+                # ===== CHILE =====
+                'SCL': {'latitude': -33.4489, 'longitude': -70.6693},
+                'VAP': {'latitude': -33.0472, 'longitude': -71.6127},
+                'CCP': {'latitude': -36.8201, 'longitude': -73.0444},
+                'LSC': {'latitude': -29.9027, 'longitude': -71.2519},
+                'ANF': {'latitude': -23.6509, 'longitude': -70.3975},
+                
+                # ===== PERU =====
+                'LIM': {'latitude': -12.0464, 'longitude': -77.0428},
+                'AQP': {'latitude': -16.4090, 'longitude': -71.5375},
+                'TRU': {'latitude': -8.1116, 'longitude': -79.0287},
+                'CIX': {'latitude': -6.7714, 'longitude': -79.8441},
+                'PIU': {'latitude': -5.1945, 'longitude': -80.6328},
+                
+                # ===== COLOMBIA =====
+                'BOG': {'latitude': 4.7110, 'longitude': -74.0721},
+                'MDE': {'latitude': 6.2442, 'longitude': -75.5812},
+                'CLO': {'latitude': 3.4516, 'longitude': -76.5320},
+                'BAQ': {'latitude': 10.9639, 'longitude': -74.7964},
+                'CTG': {'latitude': 10.3910, 'longitude': -75.4794},
+                
+                # ===== ECUADOR =====
+                'UIO': {'latitude': -0.1807, 'longitude': -78.4678},
+                'GYE': {'latitude': -2.1894, 'longitude': -79.8890},
+                'CUE': {'latitude': -2.9001, 'longitude': -79.0059},
+                'STD': {'latitude': -0.2500, 'longitude': -79.1750},
+                'MHC': {'latitude': -3.2581, 'longitude': -79.9553},
+                
+                # ===== VENEZUELA =====
+                'CCS': {'latitude': 10.4806, 'longitude': -66.9036},
+                'MAR': {'latitude': 10.6427, 'longitude': -71.6125},
+                'VLN': {'latitude': 10.1621, 'longitude': -68.0077},
+                'BRM': {'latitude': 10.0647, 'longitude': -69.3570},
+                'CGU': {'latitude': 8.3114, 'longitude': -62.7116},
+            }            
             
             coords = city_coordinates.get(city_code)
             if not coords:
@@ -578,7 +1015,7 @@ class AmadeusService:
             # FIXED: Get more hotel IDs and process in batches if needed
             all_hotel_ids = [hotel['hotelId'] for hotel in hotels_response.data]
             logger.info(f"Available hotel IDs: {len(all_hotel_ids)}")
-            
+
             # Process hotels in batches to avoid API limits
             all_hotel_offers = []
             batch_size = 20  # Process 20 hotels at a time
@@ -626,7 +1063,7 @@ class AmadeusService:
             
         except Exception as e:
             logger.error(f"Enhanced approach 3 failed: {str(e)}")
-            return {"success": False, "error": f"Enhanced approach 3 failed: {str(e)}", "results": []}      
+            return {"success": False, "error": f"Enhanced approach 3 failed: {str(e)}", "results": []}        
 
     @amadeus_critical_retry
     async def get_hotel_offers(self, hotel_id: str, check_in_date: str, check_out_date: str,
