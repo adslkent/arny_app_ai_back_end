@@ -152,6 +152,34 @@ def retry_on_google_api_error_result(result):
         )
     return False
 
+def retry_on_microsoft_api_error_result(result):
+    """Retry if Microsoft API result contains retryable errors or warnings"""
+    if isinstance(result, dict):
+        error_msg = result.get("error", "").lower()
+        
+        # Don't retry on Conditional Access or authentication failures
+        non_retryable_errors = [
+            'aadsts53003',  # Conditional Access blocked
+            'aadsts70001',  # Application not found
+            'aadsts90002',  # Tenant not found
+            'aadsts50020',  # User account from external provider
+            'aadsts50034',  # User does not exist
+            'conditional access',
+            'access has been blocked',
+            'microsoft credentials not configured'
+        ]
+        
+        if any(error in error_msg for error in non_retryable_errors):
+            return False  # Don't retry
+        
+        # Only retry on transient errors
+        return (
+            result.get("error") is not None and
+            result.get("success") is False and
+            any(keyword in error_msg for keyword in ['timeout', 'failed', 'unavailable', 'network', 'temporary'])
+        )
+    return False
+
 def retry_on_http_status_error(result):
     """Retry on HTTP status errors"""
     if hasattr(result, 'status_code'):
@@ -180,9 +208,25 @@ def retry_on_google_api_exception(exception):
 def retry_on_microsoft_api_exception(exception):
     """Custom exception checker for Microsoft API calls"""
     exception_str = str(exception).lower()
+    # Don't retry on Conditional Access policy errors or authentication/authorization failures
+    non_retryable_errors = [
+        'aadsts53003',  # Conditional Access blocked
+        'aadsts70001',  # Application not found
+        'aadsts90002',  # Tenant not found
+        'aadsts50020',  # User account from external provider
+        'aadsts50034',  # User does not exist
+        'conditional access',
+        'access has been blocked'
+    ]
+    
+    # Check if this is a non-retryable error
+    if any(error in exception_str for error in non_retryable_errors):
+        return False  # Don't retry
+    
+    # Only retry on transient errors
     return any(keyword in exception_str for keyword in [
-        'timeout', 'failed', 'unavailable', 'invalid_grant', 'consent_required',
-        'token_expired', 'interaction_required'
+        'timeout', 'failed', 'unavailable', 'invalid_grant', 'token_expired',
+        'interaction_required', 'network', 'connection', 'temporary'
     ])
 
 # Google API retry decorator
@@ -208,20 +252,20 @@ google_api_retry = retry(
 # Microsoft API retry decorator
 microsoft_api_retry = retry(
     retry=retry_any(
-        # Condition 3: Exception message matching
-        retry_if_exception_message(match=r".*(timeout|failed|unavailable|invalid_grant|consent_required|token_expired).*"),
+        # Condition 3: Exception message matching (excluding non-retryable errors)
+        retry_if_exception_message(match=r".*(timeout|failed|unavailable|network|connection|temporary).*"),
         # Condition 4: Exception types and custom checkers
         retry_if_exception_type((requests.exceptions.RequestException, ConnectionError, TimeoutError, requests.exceptions.Timeout)),
         retry_if_exception(retry_on_microsoft_api_exception),
-        # Condition 2: Error/warning field inspection
-        retry_if_result(retry_on_google_api_error_result),  # Same logic applies
+        # Condition 2: Error/warning field inspection (using Microsoft-specific logic)
+        retry_if_result(retry_on_microsoft_api_error_result),  # Use the new function here
         # Condition 1: HTTP status code checking
         retry_if_result(retry_on_http_status_error),
         # Condition 5: Validation failure
         retry_if_result(retry_on_api_validation_failure)
     ),
-    stop=stop_after_attempt(4),
-    wait=wait_exponential(multiplier=1.5, min=1, max=15),
+    stop=stop_after_attempt(2),  # Reduce retries for faster failure on auth issues
+    wait=wait_exponential(multiplier=1.5, min=1, max=8),  # Shorter wait times
     before_sleep=before_sleep_log(logger, logging.WARNING)
 )
 
@@ -444,11 +488,11 @@ City:"""
             print(f"📧 Attempting server-to-server Outlook profile scan for: {email}")
             
             # Check if we have Azure AD app credentials
-            client_id = os.environ.get('MICROSOFT_CLIENT_ID')
-            client_secret = os.environ.get('MICROSOFT_CLIENT_SECRET')
-            tenant_id = os.environ.get('MICROSOFT_TENANT_ID')
+            client_id = os.environ.get('OUTLOOK_CLIENT_ID')
+            client_secret = os.environ.get('OUTLOOK_CLIENT_SECRET')  
+            tenant_id = os.environ.get('MICROSOFT_TENANT_ID', 'common')
             
-            if not all([client_id, client_secret, tenant_id]):
+            if not all([client_id, client_secret]):
                 print("❌ Microsoft Azure AD app credentials not configured")
                 return {
                     "name": None,
@@ -472,7 +516,34 @@ City:"""
             )
             
             if 'access_token' not in token_result:
-                print(f"❌ Failed to acquire access token: {token_result.get('error_description', 'Unknown error')}")
+                error_description = token_result.get('error_description', 'Unknown error')
+                error_code = token_result.get('error', 'unknown_error')
+
+                print(f"❌ Failed to acquire access token: {error_description}")
+
+                # Check for ANY Conditional Access or authentication block errors
+                conditional_access_indicators = [
+                    'AADSTS53003',
+                    'Conditional Access',
+                    'Access has been blocked',
+                    'access_denied',
+                    'invalid_client',
+                    'unauthorized_client'
+                ]
+                
+                if any(indicator in error_description for indicator in conditional_access_indicators):
+                    print(f"🚫 Microsoft access permanently blocked - not retrying: {error_description}")
+                    # Return with success=True to prevent retries
+                    return {
+                        "name": None,
+                        "gender": None,
+                        "birthdate": None,
+                        "city": None,
+                        "success": True,  # Set to True to prevent retries
+                        "error": "Microsoft access blocked by security policies"
+                    }
+                
+                # For other authentication errors that might be temporary
                 return {
                     "name": None,
                     "gender": None,
@@ -568,14 +639,39 @@ City:"""
             return result
             
         except Exception as e:
-            print(f"❌ Outlook server-to-server scan failed for {email}: {str(e)}")
+            error_str = str(e)
+
+            print(f"❌ Outlook server-to-server scan failed for {email}: {error_str}")
+
+            # Check for Conditional Access errors in exception messages
+            conditional_access_indicators = [
+                'AADSTS53003',
+                'Conditional Access',
+                'Access has been blocked',
+                'access_denied',
+                'invalid_client'
+            ]
+            
+            if any(indicator in error_str for indicator in conditional_access_indicators):
+                print(f"🚫 Microsoft access permanently blocked - not retrying: {error_str}")
+                # Return with success=True to prevent retries
+                return {
+                    "name": None,
+                    "gender": None,
+                    "birthdate": None,
+                    "city": None,
+                    "success": True,  # This prevents retries
+                    "error": "Microsoft access blocked by security policies"
+                }
+            
+            # For other errors that might be retryable
             return {
                 "name": None,
                 "gender": None,
                 "birthdate": None,
                 "city": None,
                 "success": False,
-                "error": f"Outlook scan failed: {str(e)}"
+                "error": f"Outlook scan failed: {error_str}"
             }
     
     def scan_email_for_profile(self, email: str, user_id: str) -> Dict[str, Any]:
