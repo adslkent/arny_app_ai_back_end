@@ -186,7 +186,7 @@ def scan_email_for_profile_tool(email: str) -> dict:
         # Try to scan the email for profile information
         try:
             # Use the email service to scan for profile data
-            scan_result = _run_async_safely(agent.email_service.scan_email_for_profile(email, agent.current_user_id))
+            scan_result = agent.email_service.scan_email_for_profile(email, agent.current_user_id)
             
             print(f"📧 Email scan result: {scan_result}")
             
