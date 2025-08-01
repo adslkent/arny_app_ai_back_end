@@ -475,39 +475,52 @@ class AmadeusService:
                     "results": []
                 }
             
-            logger.info(f"Step 2: Searching offers for {len(hotel_ids)} hotels in {city_code}")
-            
-            # Step 2: Get hotel offers with enhanced parameter validation
-            search_params = {
-                'hotelIds': ','.join(hotel_ids[:20]),  # Limit to 20 hotels to avoid API limits
-                'checkInDate': check_in_date,
-                'checkOutDate': check_out_date,
-                'adults': str(adults),  # Ensure string format
-                'roomQuantity': str(rooms)  # Ensure string format
-            }
-            
-            # Add logging for debugging
-            logger.info(f"Hotel offers search params: {search_params}")
-            
-            offers_response = self.client.shopping.hotel_offers_search.get(**search_params)
-            
-            # Process results
-            hotel_offers = []
-            if hasattr(offers_response, 'data') and offers_response.data:
-                for hotel_data in offers_response.data:
-                    formatted_offer = self._format_hotel_offer(hotel_data)
-                    hotel_offers.append(formatted_offer)
-            
-            logger.info(f"✅ Approach 2 SUCCESS: Found {len(hotel_offers)} hotel offers for {city_code}")
-            
+            logger.info(f"Step 2: Searching offers for {len(hotel_ids)} hotels in {city_code} using batch processing")
+
+            # Step 2: Get hotel offers using batch processing to handle all hotels
+            all_hotel_offers = []
+            batch_size = 20  # Process 20 hotels at a time
+
+            for i in range(0, len(hotel_ids), batch_size):
+                batch_hotel_ids = hotel_ids[i:i+batch_size]
+                logger.info(f"Processing batch {i//batch_size + 1}: {len(batch_hotel_ids)} hotels")
+                
+                try:
+                    search_params = {
+                        'hotelIds': ','.join(batch_hotel_ids),  # Process this batch
+                        'checkInDate': check_in_date,
+                        'checkOutDate': check_out_date,
+                        'adults': str(adults),  # Ensure string format
+                        'roomQuantity': str(rooms)  # Ensure string format
+                    }
+                    
+                    offers_response = self.client.shopping.hotel_offers_search.get(**search_params)
+                    
+                    if hasattr(offers_response, 'data') and offers_response.data:
+                        for hotel_data in offers_response.data:
+                            formatted_offer = self._format_hotel_offer(hotel_data)
+                            all_hotel_offers.append(formatted_offer)
+                            
+                    logger.info(f"Batch {i//batch_size + 1} found {len(offers_response.data) if hasattr(offers_response, 'data') and offers_response.data else 0} offers")
+                    
+                except Exception as batch_error:
+                    logger.warning(f"Batch {i//batch_size + 1} failed: {batch_error}")
+                    continue
+
+            logger.info(f"✅ Approach 2 SUCCESS: Found {len(all_hotel_offers)} hotel offers for {city_code} (processed in batches)")
+
+            # Update the variable name in the return statement
+            hotel_offers = all_hotel_offers
+        
             return {
                 "success": True,
                 "results": hotel_offers,
                 "meta": {
                     "count": len(hotel_offers),
-                    "approach": "two_step_search",
+                    "approach": "two_step_search_batched",  # Updated name to indicate batching
                     "hotel_ids_found": len(hotel_ids),
-                    "search_params": search_params
+                    "batches_processed": (len(hotel_ids) + batch_size - 1) // batch_size,  # Add batch info
+                    "search_params": "batched_processing"  # Updated since we no longer have single search_params
                 }
             }
             
