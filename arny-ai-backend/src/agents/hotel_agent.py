@@ -776,15 +776,16 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
             )
         )
 
-        # FIXED: Extract data from the returned dictionary structure
         filtered_hotels = filter_result.get("filtered_results", hotel_results[:10])
         filtering_applied = filter_result.get("filtering_applied", False)
         rationale = filter_result.get("reasoning", "Applied personalized filtering based on your profile")
+        profile_mismatch = filter_result.get("profile_mismatch", False)  # ENHANCEMENT: Check for profile mismatch
         
         filtered_count = len(filtered_hotels)
         
         print(f"🎯 Profile filtering: {original_count} → {filtered_count} hotels")
         print(f"📊 Filtering applied: {filtering_applied}")
+        print(f"⚠️ Profile mismatch: {profile_mismatch}")  # ENHANCEMENT: Log profile mismatch
         if rationale:
             print(f"💡 Rationale: {rationale}")
         
@@ -795,6 +796,7 @@ async def search_hotels_tool(destination: str, check_in_date: str, check_out_dat
             "original_count": original_count,
             "filtered_count": filtered_count,
             "filtering_applied": filtering_applied,
+            "profile_mismatch": profile_mismatch,  # ENHANCEMENT: Include profile mismatch flag
             "group_size": 1,  # Default for now
             "rationale": rationale
         }
@@ -1102,13 +1104,20 @@ class HotelAgent:
     # ==================== HELPER METHODS ====================
     
     def _format_hotel_results_for_agent(self, hotels: List[Dict], destination: str, 
-                                       check_in: str, check_out: str, filtering_info: Dict) -> str:
+                                       check_in_date: str, check_out_date: str, filtering_info: Dict) -> str:
         """Format hotel results for the agent to present to the user"""
         
         if not hotels:
             return "No hotels found matching your criteria."
         
-        result = f"Found {len(hotels)} hotels in {destination} from {check_in} to {check_out}:\n\n"
+        # ENHANCEMENT: Handle profile mismatch case
+        profile_mismatch = filtering_info.get("profile_mismatch", False)
+        if profile_mismatch:
+            mismatch_message = "**IMPORTANT NOTE**: None of these hotels match your profile preferences, but here are the available options:\n\n"
+        else:
+            mismatch_message = ""
+
+        result = f"{mismatch_message}Found {len(hotels)} hotels in {destination} from {check_in_date} to {check_out_date}:\n\n"
         
         if filtering_info.get("filtering_applied"):
             result += f"✨ Applied personalized filtering: {filtering_info.get('rationale', 'Based on your preferences')}\n"
