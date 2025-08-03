@@ -630,11 +630,13 @@ def search_flights_tool(origin: str, destination: str, departure_date: str,
         filtered_flights = filter_result.get("filtered_results", flights[:10])
         filtering_applied = filter_result.get("filtering_applied", False)
         rationale = filter_result.get("reasoning", "Applied personalized filtering based on your profile")
+        profile_mismatch = filter_result.get("profile_mismatch", False)  # ENHANCEMENT: Check for profile mismatch
 
         filtered_count = len(filtered_flights)
         
         print(f"🎯 Profile filtering: {original_count} → {filtered_count} flights")
         print(f"📊 Filtering applied: {filtering_applied}")
+        print(f"⚠️ Profile mismatch: {profile_mismatch}")  # ENHANCEMENT: Log profile mismatch
         if rationale:
             print(f"💡 Rationale: {rationale}")
         
@@ -645,6 +647,7 @@ def search_flights_tool(origin: str, destination: str, departure_date: str,
             "original_count": original_count,
             "filtered_count": filtered_count,
             "filtering_applied": filtering_applied,
+            "profile_mismatch": profile_mismatch,  # ENHANCEMENT: Include profile mismatch flag
             "group_size": 1,  # Default for now
             "rationale": rationale
         }
@@ -1074,7 +1077,14 @@ Always be helpful, professional, and efficient in finding the best flight option
         if not flights:
             return "No flights found matching your criteria."
         
-        result = f"Found {len(flights)} flights from {origin} to {destination} on {departure_date}:\n\n"
+        # ENHANCEMENT: Handle profile mismatch case
+        profile_mismatch = filtering_info.get("profile_mismatch", False)
+        if profile_mismatch:
+            mismatch_message = "**IMPORTANT NOTE**: None of these flights match your profile preferences, but here are the available options:\n\n"
+        else:
+            mismatch_message = ""
+        
+        result = f"{mismatch_message}Found {len(flights)} flights from {origin} to {destination} on {departure_date}:\n\n"
         
         if filtering_info.get("filtering_applied"):
             result += f"✨ Applied personalized filtering: {filtering_info.get('rationale', 'Based on your preferences')}\n"
