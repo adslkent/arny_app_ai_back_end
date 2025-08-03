@@ -1057,11 +1057,12 @@ Key rules:
 2. If no return date is provided, search for one-way flights
 3. Default to 1 adult passenger unless specified otherwise
 4. Default to ECONOMY class unless specified otherwise
-5. Convert city names to airport codes automatically (e.g., Sydney → SYD, London → LHR)
-6. Be specific about dates - ask for clarification if dates are unclear
-7. **IMPORTANT: Present ALL filtered flight results in your response - do not truncate the list**
-8. Show flight details including airlines, times, prices, and duration for ALL results
-9. If multiple passengers, collect this information before searching
+5. **DEPARTING AIRPORT SPECIFICATION REQUIRED: If a user provides only a departing city name without specifying the specific departing airport, ALWAYS ask the user to specify which departing airport they prefer before proceeding with any flight search. Do not automatically assume or convert city names to airport codes for the departing location. Examples: "I see you want to depart from London - which airport would you prefer: Heathrow (LHR), Gatwick (LGW), Stansted (STN), or Luton (LTN)?" or "You mentioned departing from New York - would you like to depart from JFK, LaGuardia (LGA), or Newark (EWR)?"**
+6. For destination airports, you may convert city names to airport codes automatically (e.g., Sydney → SYD, London → LHR)
+7. Be specific about dates - ask for clarification if dates are unclear
+8. **IMPORTANT: Present ALL filtered flight results in your response - do not truncate the list**
+9. Show flight details including airlines, times, prices, and duration for ALL results
+10. If multiple passengers, collect this information before searching
 
 Example interactions:
 - "Flights from Sydney to LA next Friday" → extract departure city, destination, and date
