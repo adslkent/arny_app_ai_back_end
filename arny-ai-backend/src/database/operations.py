@@ -468,14 +468,46 @@ class DatabaseOperations:
                     'invited_emails', 'conversation_history', 'current_step',
                     'completion_timestamp', 'completed'
                 }
-                
-                # Better filtering and data cleaning
+
+                # Better filtering and data cleaning with SKIP value handling
                 filtered_profile_data = {}
                 for key, value in profile_data.items():
                     if (key in user_profile_fields and 
                         key not in group_invite_exclude_fields and 
                         value is not None and value != ""):
-                        filtered_profile_data[key] = value
+                        
+                        # CRITICAL: Handle SKIPPED_ values - convert to appropriate database values
+                        if isinstance(value, str) and value.startswith("SKIPPED_"):
+                            print(f"🔄 Converting skip value: {key} = {value}")
+                            
+                            # Convert SKIPPED_ values to appropriate database-compatible values
+                            if key == "email":
+                                # Email is REQUIRED - we need to use the user's actual email from auth
+                                print(f"⚠️ Email was skipped, but it's required. We'll use the auth email instead.")
+                                # Skip this field here - let the system use the email from the auth system
+                                continue
+                            elif key == "gender":
+                                # Use prefer_not_to_say for skipped gender  
+                                filtered_profile_data[key] = "prefer_not_to_say"
+                                print(f"✅ Converted {key}: SKIPPED_GENDER -> prefer_not_to_say")
+                            elif key in ["name", "city", "employer", "working_schedule", "holiday_frequency", 
+                                        "annual_income", "monthly_spending", "holiday_preferences"]:
+                                # These are optional - skip storing them completely
+                                print(f"⏭️ Skipping optional field: {key}")
+                                continue
+                            elif key == "birthdate":
+                                # This is optional - skip storing it completely
+                                print(f"⏭️ Skipping optional birthdate field")
+                                continue
+                            else:
+                                # For any other fields, skip them
+                                print(f"⏭️ Skipping unknown field: {key}")
+                                continue
+                        else:
+                            # Normal value, store as-is
+                            filtered_profile_data[key] = value
+                            print(f"✅ Storing normal value: {key} = {value}")
+                            
                     elif key in group_invite_exclude_fields:
                         print(f"🚫 Excluding problematic field: {key} = {value}")
                     elif key not in user_profile_fields:
