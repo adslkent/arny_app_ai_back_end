@@ -616,11 +616,23 @@ Select up to 10 flight IDs from the provided list. You may select fewer if less 
                                             filtered_flights.append(original_flights[flight_id - 1])
                                     
                                     print(f"✅ AI filtered to {len(filtered_flights)} flights")
+
+                                    # ENHANCEMENT: If no flights match profile, return original results with special flag
+                                    if len(filtered_flights) == 0 and len(original_flights) > 0:
+                                        print(f"⚠️ No flights match user profile - returning original results with profile mismatch flag")
+                                        return {
+                                            "filtered_results": original_flights[:10],  # Return top 10 original results
+                                            "total_results": len(original_flights),
+                                            "filtering_applied": True,
+                                            "profile_mismatch": True,  # Special flag to indicate profile mismatch
+                                            "reasoning": f"None of the available flights match your profile preferences. {reasoning}"
+                                        }
                                     
                                     return {
                                         "filtered_results": filtered_flights,
                                         "total_results": len(original_flights),
                                         "filtering_applied": True,
+                                        "profile_mismatch": False,  # Normal case - some flights matched
                                         "reasoning": reasoning
                                     }
                                     
@@ -746,11 +758,23 @@ Select up to 10 hotel IDs from the provided list. You may select fewer if less t
                             filtered_hotels.append(original_hotels[hotel_id - 1])
                     
                     print(f"✅ AI filtered to {len(filtered_hotels)} hotels")
+
+                    # ENHANCEMENT: If no hotels match profile, return original results with special flag
+                    if len(filtered_hotels) == 0 and len(original_hotels) > 0:
+                        print(f"⚠️ No hotels match user profile - returning original results with profile mismatch flag")
+                        return {
+                            "filtered_results": original_hotels[:10],  # Return top 10 original results
+                            "total_results": len(original_hotels),
+                            "filtering_applied": True,
+                            "profile_mismatch": True,  # Special flag to indicate profile mismatch
+                            "reasoning": f"None of the available hotels match your profile preferences. {reasoning}"
+                        }
                     
                     return {
                         "filtered_results": filtered_hotels,
                         "total_results": len(original_hotels),
                         "filtering_applied": True,
+                        "profile_mismatch": False,  # Normal case - some hotels matched
                         "reasoning": reasoning
                     }
                     
