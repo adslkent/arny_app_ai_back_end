@@ -177,6 +177,16 @@ def scan_email_for_profile_tool(email: str) -> dict:
         if not agent:
             return {"error": "Agent not available"}
         
+        # Check if user wants to skip email scanning
+        if email.lower().strip() in ["skip", "skipped"]:
+            print(f"⏭️ Email scanning skipped")
+            agent.current_collected_data["email"] = "SKIPPED_EMAIL"
+            return {
+                "success": True,
+                "email_stored": "SKIPPED_EMAIL",
+                "message": "Email scanning skipped. You can add your email later."
+            }
+        
         print(f"📧 Scanning email for profile: {email}")
         
         # CRITICAL: Always store the email address first
@@ -255,12 +265,15 @@ def store_personal_info_tool(name: str, gender: str, birthdate: str, city: str) 
         
         print(f"👤 Storing personal info: {name}, {gender}, {birthdate}, {city}")
         
-        agent.current_collected_data.update({
-            "name": name,
-            "gender": gender,
-            "birthdate": birthdate,
-            "city": city
-        })
+        # Handle skip values by storing them as special markers
+        processed_data = {}
+        for field, value in [("name", name), ("gender", gender), ("birthdate", birthdate), ("city", city)]:
+            if value.lower().strip() in ["skip", "skipped"]:
+                processed_data[field] = f"SKIPPED_{field.upper()}"
+            else:
+                processed_data[field] = value
+        
+        agent.current_collected_data.update(processed_data)
         
         print(f"✅ Personal info stored successfully")
         return {"success": True, "message": "Personal information saved successfully."}
@@ -279,11 +292,15 @@ def store_job_details_tool(employer: str, working_schedule: str, holiday_frequen
         
         print(f"💼 Storing job details: {employer}, {working_schedule}, {holiday_frequency}")
         
-        agent.current_collected_data.update({
-            "employer": employer,
-            "working_schedule": working_schedule,
-            "holiday_frequency": holiday_frequency
-        })
+        # Handle skip values by storing them as special markers
+        processed_data = {}
+        for field, value in [("employer", employer), ("working_schedule", working_schedule), ("holiday_frequency", holiday_frequency)]:
+            if value.lower().strip() in ["skip", "skipped"]:
+                processed_data[field] = f"SKIPPED_{field.upper()}"
+            else:
+                processed_data[field] = value
+        
+        agent.current_collected_data.update(processed_data)
         
         print(f"✅ Job details stored successfully")
         return {"success": True, "message": "Job details saved successfully."}
@@ -302,10 +319,15 @@ def store_financial_info_tool(annual_income: str, monthly_spending: str) -> dict
         
         print(f"💰 Storing financial info: {annual_income}, {monthly_spending}")
         
-        agent.current_collected_data.update({
-            "annual_income": annual_income,
-            "monthly_spending": monthly_spending
-        })
+        # Handle skip values by storing them as special markers
+        processed_data = {}
+        for field, value in [("annual_income", annual_income), ("monthly_spending", monthly_spending)]:
+            if value.lower().strip() in ["skip", "skipped"]:
+                processed_data[field] = f"SKIPPED_{field.upper()}"
+            else:
+                processed_data[field] = value
+        
+        agent.current_collected_data.update(processed_data)
         
         print(f"✅ Financial info stored successfully")
         return {"success": True, "message": "Financial information saved successfully."}
@@ -324,7 +346,11 @@ def store_holiday_preferences_tool(holiday_preferences: str) -> dict:
         
         print(f"🏖️ Storing holiday preferences: {holiday_preferences}")
         
-        agent.current_collected_data["holiday_preferences"] = holiday_preferences
+        # Handle skip values by storing them as special markers
+        if holiday_preferences.lower().strip() in ["skip", "skipped"]:
+            agent.current_collected_data["holiday_preferences"] = "SKIPPED_HOLIDAY_PREFERENCES"
+        else:
+            agent.current_collected_data["holiday_preferences"] = holiday_preferences
         
         print(f"✅ Holiday preferences stored successfully")
         return {"success": True, "message": "Holiday preferences saved successfully."}
@@ -601,6 +627,14 @@ class OnboardingAgent:
                 "IMPORTANT COMPLETION CHECK:\n"
                 "After using send_group_invites_tool or decline_group_invites_tool, ALWAYS check if all onboarding steps are now complete. "
                 "If they are complete (all data collected and group invites handled), immediately say: 'Thank you, this completes your onboarding to Arny!'\n\n"
+                "SKIP HANDLING:\n"
+                "When a user says 'skip', 'skipped', or similar during any step:\n"
+                "- For EMAIL SCANNING: Call scan_email_for_profile_tool with 'skip' as the email parameter\n"
+                "- For PERSONAL INFORMATION: Call store_personal_info_tool with 'skip' for any missing fields\n"
+                "- For JOB DETAILS: Call store_job_details_tool with 'skip' for any missing fields\n"
+                "- For FINANCIAL INFORMATION: Call store_financial_info_tool with 'skip' for any missing fields\n"
+                "- For HOLIDAY PREFERENCES: Call store_holiday_preferences_tool with 'skip' as the parameter\n"
+                "Always call the appropriate tool when a user wants to skip - never just respond conversationally.\n\n"
                 "IMPORTANT RULES:\n"
                 "DO NOT call the same tool multiple times in one response. "
                 "CONTINUE FROM WHERE THE CONVERSATION LEFT OFF - check collected data to see what step to proceed with. "
