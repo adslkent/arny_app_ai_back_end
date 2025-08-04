@@ -921,7 +921,6 @@ class HotelAgent:
             Annual Income: {user_profile.get('annual_income', 'Not provided')}
             Monthly Spending: {user_profile.get('monthly_spending', 'Not provided')}
             Holiday Preferences: {user_profile.get('holiday_preferences', [])}
-            Group Code: {user_profile.get('group_code', 'None')}
             
             Use this profile information to personalize hotel recommendations.
             Consider the user's budget (annual income and monthly spending), and preferences when suggesting accommodations.
@@ -1171,3 +1170,4 @@ __all__ = [
     'HotelAgent',
     'search_hotels_tool'
 ]
+
