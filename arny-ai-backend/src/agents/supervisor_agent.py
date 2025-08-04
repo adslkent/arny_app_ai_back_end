@@ -143,7 +143,6 @@ class SupervisorAgent:
             Annual Income: {user_profile.get('annual_income', 'Not provided')}
             Monthly Spending: {user_profile.get('monthly_spending', 'Not provided')}
             Holiday Preferences: {user_profile.get('holiday_preferences', [])}
-            Group Code: {user_profile.get('group_code', 'None')}
             
             Use this profile information to personalize travel recommendations and responses.
             Always refer to the user by their name when possible and tailor suggestions to their preferences.
@@ -394,3 +393,4 @@ Remember: You can search for flights and hotels when users are ready, but for ge
 __all__ = [
     'SupervisorAgent'
 ]
+
