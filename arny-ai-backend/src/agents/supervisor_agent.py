@@ -305,7 +305,7 @@ class SupervisorAgent:
             # Add current user message
             conversation_context.append(f"user: {message}")
 
-            # Create input for the agent (use last 10 messages for context)
+            # Create input for the agent (use last 50 messages for context)
             agent_input = "\n".join(conversation_context[-50:])
 
             print(f"🔧 Built context with profile + {len(conversation_history[-50:])} conversation messages")
@@ -393,4 +393,5 @@ Remember: You can search for flights and hotels when users are ready, but for ge
 __all__ = [
     'SupervisorAgent'
 ]
+
 
