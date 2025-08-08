@@ -175,10 +175,10 @@ class SupervisorAgent:
         try:
             print(f"🤖 SUPERVISOR: Processing message: '{message[:50]}...'")
             
-            # OPTIMIZATION 1: Ultra-fast keyword-based routing (no LLM call)
-            routing_decision = self._ultra_fast_routing(message)
+            # Context-aware routing using LLM with conversation history
+            routing_decision = await self._context_aware_routing(message, conversation_history)
             
-            print(f"⚡ INSTANT routing decision: {routing_decision}")
+            print(f"🎯 Routing decision: {routing_decision}")
             
             # OPTIMIZATION 2: Direct routing without delays
             if routing_decision == "flight_search":
@@ -210,10 +210,14 @@ class SupervisorAgent:
                 "search_id": None,
                 "filtering_info": {}
             }
-    
-    def _ultra_fast_routing(self, message: str) -> str:
+
+    async def _context_aware_routing(self, message: str, conversation_history: list) -> str:
         """
-        OPTIMIZATION: Ultra-fast keyword-based routing without LLM calls
+        Context-aware routing using LLM with conversation history
+        
+        Args:
+            message: Current user message
+            conversation_history: List of recent conversation messages
         
         Returns:
             - "flight_search": For flight-related requests
@@ -221,60 +225,67 @@ class SupervisorAgent:
             - "general": For general conversation
         """
         
-        message_lower = message.lower()
-        
-        # FLIGHT KEYWORDS (comprehensive list)
-        flight_keywords = [
-            "flight", "flights", "fly", "flying", "plane", "airplane", "aircraft",
-            "departure", "arrive", "arrival", "takeoff", "landing", "airline", "airways",
-            "airport", "boarding", "check-in", "gate", "terminal", "runway",
-            "ticket", "booking", "seat", "aisle", "window", "economy", "business", "first class",
-            "layover", "stopover", "direct", "nonstop", "connecting", "transfer",
-            "baggage", "luggage", "carry-on", "checked bag",
-            "itinerary", "travel time", "flight time", "duration",
-            "roundtrip", "round trip", "one way", "return",
-            # Specific airlines
-            "qantas", "jetstar", "virgin", "american airlines", "united", "delta",
-            "british airways", "lufthansa", "air france", "singapore airlines", "emirates"
-        ]
-        
-        # HOTEL KEYWORDS (comprehensive list)
-        hotel_keywords = [
-            "hotel", "hotels", "stay", "staying", "accommodation", "accommodations",
-            "room", "rooms", "suite", "bed", "bedroom", "bathroom",
-            "check-in", "check-out", "checkin", "checkout",
-            "reservation", "booking", "book", "reserve",
-            "night", "nights", "overnight", "sleep",
-            "lodge", "inn", "resort", "motel", "hostel", "b&b", "bed and breakfast",
-            "apartment", "villa", "house", "rental",
-            "amenities", "pool", "gym", "spa", "restaurant", "breakfast",
-            "wifi", "parking", "concierge", "housekeeping",
-            "star", "rating", "luxury", "budget", "cheap", "expensive",
-            # Hotel chains
-            "hilton", "marriott", "hyatt", "sheraton", "holiday inn", "best western",
-            "intercontinental", "radisson", "westin", "renaissance"
-        ]
-        
-        # Count keyword matches
-        flight_score = sum(1 for keyword in flight_keywords if keyword in message_lower)
-        hotel_score = sum(1 for keyword in hotel_keywords if keyword in message_lower)
-        
-        print(f"🎯 Routing scores - Flight: {flight_score}, Hotel: {hotel_score}")
-        
-        # Routing logic with clear priority
-        if flight_score > hotel_score and flight_score > 0:
-            return "flight_search"
-        elif hotel_score > flight_score and hotel_score > 0:
-            return "hotel_search"
-        elif flight_score == hotel_score and flight_score > 0:
-            # Tie-breaker: Look for more specific patterns
-            if any(word in message_lower for word in ["from", "to", "departure", "arrival", "fly"]):
-                return "flight_search"
-            elif any(word in message_lower for word in ["stay", "night", "check-in", "room"]):
-                return "hotel_search"
-        
-        # Default to general conversation
-        return "general"
+        try:
+            # Build conversation context from history (last 50 messages)
+            context_messages = []
+            recent_messages = conversation_history[-50:]
+            
+            for msg in recent_messages:
+                role = "user" if msg.message_type == "user" else "assistant"
+                context_messages.append(f"{role}: {msg.content}")
+            
+            # Add current message
+            context_messages.append(f"user: {message}")
+            
+            # Create full context string
+            conversation_context = "\n".join(context_messages)
+            
+            routing_agent = Agent(
+                name="Routing Assistant",
+                instructions="""You are a routing assistant for a travel AI system. Your ONLY job is to analyze the conversation and determine the correct routing.
+
+                Based on the conversation context and the most recent user message, respond with ONLY one of these three exact words:
+                - "flight_search" if the user is asking about flights, airlines, airports, or air travel
+                - "hotel_search" if the user is asking about hotels, accommodations, stays, or lodging  
+                - "general" for all other conversations, questions, or greetings
+
+                IMPORTANT CONTEXT RULES:
+                1. The current message likely references the MOST RECENT previous messages, not older context
+                2. If the user asks a follow-up question (e.g., "what about tomorrow?" or "how much does it cost?"), determine the routing based on what they were JUST discussing
+                3. Pay special attention to the last 2-3 exchanges to understand what the user is referring to
+                4. Common follow-up patterns:
+                - "What about [different date]?" - refers to the most recent flight or hotel search
+                - "Show me more options" - refers to the most recent flight or hotel search
+                - "How much?" or "What's the price?" - refers to the most recent flight or hotel discussed
+                - "Book it" or "I'll take it" - refers to the most recent flight or hotel option shown
+
+                Example routing decisions:
+                - User previously asked about flights to Paris, now asks "what about next week?" → route to "flight_search"
+                - User previously asked about hotels in Tokyo, now asks "any cheaper options?" → route to "hotel_search"
+                - User asks "how's the weather there?" after discussing flights → route to "general"
+
+                Your response must be ONLY one of these three words, nothing else.""",
+                model="o4-mini"
+            )
+            
+            # Run the routing agent
+            result = await self._run_agent_with_retry(routing_agent, conversation_context)
+            
+            # Extract routing decision
+            routing_decision = result.final_output if hasattr(result, 'final_output') else str(result)
+            routing_decision = routing_decision.strip().lower()
+            
+            # Validate the response
+            if routing_decision in ["flight_search", "hotel_search", "general"]:
+                print(f"🎯 Context-aware routing decision: {routing_decision}")
+                return routing_decision
+            else:
+                print(f"⚠️ Invalid routing response: {routing_decision}, defaulting to general")
+                return "general"
+                
+        except Exception as e:
+            print(f"⚠️ Error in context-aware routing: {e}, defaulting to general")
+            return "general"
     
     @openai_api_retry
     async def _handle_general_conversation_no_timeout(self, user_id: str, message: str, session_id: str,
@@ -393,5 +404,3 @@ Remember: You can search for flights and hotels when users are ready, but for ge
 __all__ = [
     'SupervisorAgent'
 ]
-
-
