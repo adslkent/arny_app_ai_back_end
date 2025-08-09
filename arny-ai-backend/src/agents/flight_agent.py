@@ -753,99 +753,6 @@ def search_airports_tool(keyword: str, subtype: str = "AIRPORT") -> dict:
             "message": f"Error searching for airports: {str(e)}"
         }
 
-@function_tool
-def get_checkin_links_tool(airline_code: str) -> dict:
-    """
-    Get online check-in links for an airline.
-    
-    Args:
-        airline_code: Airline code (e.g., 'CA')
-    """
-    logger.info(f"Getting check-in links for airline: {airline_code}")
-    
-    try:
-        agent = _get_flight_agent()
-        if not agent:
-            return {"success": False, "error": "Flight agent not available"}
-        
-        links = _run_async_safely(agent.amadeus_service.get_flight_checkin_links(airline_code))
-        
-        if not links:
-            return {
-                "success": False,
-                "message": f"No check-in links found for airline {airline_code}."
-            }
-        
-        result = f"Found {len(links)} check-in links for {airline_code} airline:\n\n"
-        
-        for link in links:
-            link_type = link.get('type', 'Unknown')
-            airline = link.get('airline', {}).get('name', airline_code)
-            url = link.get('href', 'Unknown')
-            
-            result += f"- {airline}\n"
-            result += f"  Type: {link_type}\n"
-            result += f"  Link: {url}\n\n"
-        
-        return {
-            "success": True,
-            "message": result,
-            "links": links
-        }
-        
-    except Exception as e:
-        logger.error(f"Error getting check-in links: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": f"Error getting check-in links: {str(e)}"
-        }
-
-@function_tool
-def get_flight_pricing_tool(flight_selection: str) -> dict:
-    """
-    Get accurate pricing for a selected flight
-    
-    Args:
-        flight_selection: Description of which flight the user selected (e.g., "flight 1", "the morning flight")
-    
-    Returns:
-        Dict with detailed pricing information
-    """
-    
-    try:
-        agent = _get_flight_agent()
-        if not agent:
-            return {"success": False, "error": "Flight agent not available"}
-        
-        # Extract flight number from selection
-        flight_number = agent._extract_flight_number(flight_selection)
-        
-        if not flight_number:
-            return {
-                "success": False,
-                "message": "I couldn't determine which flight you selected. Please specify like 'flight 1' or 'the first option'."
-            }
-        
-        # For now, return a detailed pricing response
-        # In production, this would call Amadeus Flight Offers Price API
-        return {
-            "success": True,
-            "message": f"Getting accurate pricing for flight {flight_number}...",
-            "flight_number": flight_number,
-            "pricing_info": {
-                "note": "This would contain detailed pricing from Amadeus Flight Offers Price API",
-                "includes": ["taxes", "fees", "cancellation_policy", "baggage_allowance"]
-            }
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "message": f"I encountered an error getting flight pricing: {str(e)}"
-        }
-
 # ==================== FLIGHT AGENT CLASS ====================
 
 class FlightAgent:
@@ -885,8 +792,6 @@ class FlightAgent:
             tools=[
                 search_flights_tool,
                 search_airports_tool,
-                get_checkin_links_tool,
-                get_flight_pricing_tool,
                 WebSearchTool()
             ]
         )
@@ -1035,8 +940,6 @@ Your main responsibilities are:
 1. Understanding users' flight needs and extracting key information from natural language descriptions
 2. Using the search_flights_tool to search for flights that meet user requirements
 3. Using search_airports_tool when users need airport information or codes
-4. Using get_checkin_links_tool when users ask about airline check-in
-5. Using get_flight_pricing_tool when users want detailed pricing for specific flights
 
 Current date: {today}
 Tomorrow: {tomorrow}
@@ -1128,42 +1031,10 @@ Always be helpful, professional, and efficient in finding the best flight option
         
         return result
 
-    def _extract_flight_number(self, selection: str) -> Optional[str]:
-        """Extract flight number from user selection"""
-        import re
-        
-        # Look for patterns like "flight 1", "option 2", "first", etc.
-        patterns = [
-            r'flight\s*(\d+)',
-            r'option\s*(\d+)', 
-            r'number\s*(\d+)',
-            r'^(\d+)$'
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, selection.lower())
-            if match:
-                return match.group(1)
-        
-        # Handle word numbers
-        word_numbers = {
-            'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5',
-            'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5'
-        }
-        
-        for word, num in word_numbers.items():
-            if word in selection.lower():
-                return num
-        
-        return None
-
 # ==================== MODULE EXPORTS ====================
 
 __all__ = [
     'FlightAgent',
     'search_flights_tool',
-    'search_airports_tool', 
-    'get_checkin_links_tool',
-    'get_flight_pricing_tool'
+    'search_airports_tool'
 ]
-
