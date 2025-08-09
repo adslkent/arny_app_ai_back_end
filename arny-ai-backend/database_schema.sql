@@ -4,7 +4,6 @@
 
 -- Drop existing tables in correct order (reverse dependency order)
 DROP TABLE IF EXISTS travel_itineraries CASCADE;
-DROP TABLE IF EXISTS booking_requests CASCADE;
 DROP TABLE IF EXISTS user_preferences CASCADE;
 DROP TABLE IF EXISTS hotel_searches CASCADE;
 DROP TABLE IF EXISTS flight_searches CASCADE;
@@ -134,26 +133,6 @@ CREATE TABLE user_preferences (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Booking Requests Table
-CREATE TABLE booking_requests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    session_id UUID,
-    booking_type VARCHAR(50) NOT NULL, -- 'flight', 'hotel', 'package'
-    provider VARCHAR(100) NOT NULL, -- 'amadeus', etc.
-    external_id VARCHAR(255),
-    booking_data JSONB NOT NULL,
-    total_amount DECIMAL(10,2),
-    currency VARCHAR(3),
-    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'confirmed', 'cancelled', 'failed'
-    confirmation_code VARCHAR(100),
-    payment_status VARCHAR(50),
-    booking_date TIMESTAMP WITH TIME ZONE,
-    travel_date DATE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Travel Itineraries Table
 CREATE TABLE travel_itineraries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -171,7 +150,6 @@ CREATE TABLE travel_itineraries (
     estimated_cost DECIMAL(10,2),
     actual_cost DECIMAL(10,2),
     currency VARCHAR(3),
-    is_booked BOOLEAN DEFAULT FALSE,
     is_shared BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -193,9 +171,6 @@ CREATE INDEX idx_flight_searches_session_id ON flight_searches(session_id);
 CREATE INDEX idx_hotel_searches_user_id ON hotel_searches(user_id);
 CREATE INDEX idx_hotel_searches_created_at ON hotel_searches(created_at);
 CREATE INDEX idx_hotel_searches_session_id ON hotel_searches(session_id);
-CREATE INDEX idx_booking_requests_user_id ON booking_requests(user_id);
-CREATE INDEX idx_booking_requests_status ON booking_requests(status);
-CREATE INDEX idx_booking_requests_booking_type ON booking_requests(booking_type);
 CREATE INDEX idx_travel_itineraries_user_id ON travel_itineraries(user_id);
 CREATE INDEX idx_travel_itineraries_group_code ON travel_itineraries(group_code);
 CREATE INDEX idx_travel_itineraries_start_date ON travel_itineraries(start_date);
@@ -224,10 +199,6 @@ CREATE TRIGGER update_group_members_updated_at
 
 CREATE TRIGGER update_user_preferences_updated_at 
     BEFORE UPDATE ON user_preferences 
-    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
-CREATE TRIGGER update_booking_requests_updated_at 
-    BEFORE UPDATE ON booking_requests 
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
 CREATE TRIGGER update_travel_itineraries_updated_at 
@@ -316,16 +287,6 @@ CREATE POLICY "Users can update own preferences" ON user_preferences
 CREATE POLICY "Users can insert own preferences" ON user_preferences
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- RLS Policies for booking_requests
-CREATE POLICY "Users can view own booking requests" ON booking_requests
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own booking requests" ON booking_requests
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own booking requests" ON booking_requests
-    FOR UPDATE USING (auth.uid() = user_id);
-
 -- RLS Policies for travel_itineraries
 CREATE POLICY "Users can view own itineraries" ON travel_itineraries
     FOR SELECT USING (auth.uid() = user_id);
@@ -389,8 +350,7 @@ CREATE OR REPLACE FUNCTION get_user_analytics(target_user_id uuid, days_back int
 RETURNS TABLE (
     total_messages integer,
     flight_searches integer,
-    hotel_searches integer,
-    booking_requests integer
+    hotel_searches integer
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -404,8 +364,7 @@ BEGIN
     SELECT 
         (SELECT COUNT(*)::integer FROM chat_messages WHERE user_id = target_user_id AND created_at >= start_date),
         (SELECT COUNT(*)::integer FROM flight_searches WHERE user_id = target_user_id AND created_at >= start_date),
-        (SELECT COUNT(*)::integer FROM hotel_searches WHERE user_id = target_user_id AND created_at >= start_date),
-        (SELECT COUNT(*)::integer FROM booking_requests WHERE user_id = target_user_id AND created_at >= start_date);
+        (SELECT COUNT(*)::integer FROM hotel_searches WHERE user_id = target_user_id AND created_at >= start_date);
 END;
 $$;
 
