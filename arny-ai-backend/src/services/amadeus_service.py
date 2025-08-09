@@ -274,69 +274,6 @@ class AmadeusService:
             
             return result
 
-    @amadeus_critical_retry
-    async def get_flight_price(self, flight_offer: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Get accurate pricing for a specific flight offer with retry strategies
-        """
-        try:
-            logger.info("Getting flight pricing with retry strategies")
-            
-            # The flight_offer should be the complete offer object from search
-            response = self.client.shopping.flight_offers.pricing.post(flight_offer)
-            
-            if hasattr(response, 'data') and response.data:
-                # Format the pricing response
-                priced_offer = response.data.get('flightOffers', [{}])[0]
-                
-                result = {
-                    "success": True,
-                    "priced_offer": self._format_flight_offer(priced_offer),
-                    "booking_requirements": response.data.get('bookingRequirements', {}),
-                    "pricing_valid_until": response.data.get('expirationDateTime')
-                }
-                
-                # Validate response
-                try:
-                    if result["priced_offer"]:
-                        AmadeusFlightOffer(**result["priced_offer"])
-                    logger.info("Flight pricing successful")
-                except ValidationError as ve:
-                    logger.warning(f"Flight pricing validation failed: {ve}")
-                    return {
-                        "success": False,
-                        "error": f"Pricing validation failed: {str(ve)}"
-                    }
-                
-                return result
-            else:
-                return {
-                    "success": False,
-                    "error": "No pricing data returned"
-                }
-                
-        except ResponseError as e:
-            error_msg = f"Amadeus flight pricing API error: {str(e)}"
-            logger.error(error_msg)
-            
-            # Properly extract status code from Response object
-            status_code = 'unknown'
-            if hasattr(e, 'response') and hasattr(e.response, 'status_code'):
-                status_code = str(e.response.status_code)
-            
-            return {
-                "success": False,
-                "error": error_msg,
-                "error_code": status_code
-            }
-            
-        except Exception as e:
-            logger.error(f"Unexpected flight pricing error: {str(e)}")
-            return {
-                "success": False,
-                "error": f"Unexpected error: {str(e)}"
-            }
-
     # ==================== HOTEL OPERATIONS WITH RETRY STRATEGIES ====================
 
     @amadeus_critical_retry
@@ -1171,32 +1108,6 @@ class AmadeusService:
             return []
         except Exception as e:
             logger.error(f"Unexpected airport search error: {e}")
-            return []
-
-    @amadeus_secondary_retry
-    async def get_flight_checkin_links(self, airline_code: str) -> List[Dict[str, Any]]:
-        """
-        Get flight check-in links for an airline with retry strategies
-        """
-        try:
-            logger.info(f"Getting check-in links for airline {airline_code} with retry strategies")
-            
-            response = self.client.reference_data.urls.checkin_links.get(
-                airlineCode=airline_code
-            )
-            
-            if hasattr(response, 'data') and response.data:
-                logger.info(f"Check-in links retrieved: {len(response.data)} links")
-                return response.data
-            else:
-                logger.info(f"No check-in links found for airline: {airline_code}")
-                return []
-                
-        except ResponseError as e:
-            logger.error(f"Amadeus check-in links API error: {e}")
-            return []
-        except Exception as e:
-            logger.error(f"Unexpected check-in links error: {e}")
             return []
 
     # ==================== HELPER METHODS (UNCHANGED) ====================
