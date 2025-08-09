@@ -934,7 +934,7 @@ class FlightAgent:
         # Format airport code mapping as string (showing first 20 examples)
         airport_mappings = "\n".join([f"- {city}: {code}" for city, code in list(AIRPORT_CODE_MAPPING.items())[:20]])
         
-        return f"""You are Arny's professional flight search specialist. You help users find and book flights using the Amadeus flight search system with intelligent group filtering.     
+        return f"""You are Arny's professional flight search specialist. You help users find flights using the Amadeus flight search system with intelligent group filtering.     
 
 Your main responsibilities are:
 1. Understanding users' flight needs and extracting key information from natural language descriptions
