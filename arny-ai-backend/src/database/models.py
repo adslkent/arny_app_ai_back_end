@@ -57,13 +57,6 @@ class CabinClass(str, Enum):
     BUSINESS = "BUSINESS"
     FIRST = "FIRST"
 
-class BookingStatus(str, Enum):
-    """Booking request status"""
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    CANCELLED = "cancelled"
-    FAILED = "failed"
-
 class Gender(str, Enum):
     """Gender options"""
     MALE = "male"
@@ -515,58 +508,6 @@ class HotelSearch(BaseModelWithId):
 
 # ==================== BOOKING MODELS ====================
 
-class BookingRequest(BaseModelWithId, TimestampMixin):
-    """
-    Travel booking request model
-    
-    Stores booking requests and their status.
-    """
-    user_id: str = Field(..., description="Supabase user UUID")
-    session_id: Optional[str] = Field(None, description="Chat session UUID")
-    
-    # Booking Details
-    booking_type: str = Field(..., description="Type of booking (flight, hotel, package)")
-    provider: str = Field(..., description="Service provider (amadeus, etc.)")
-    external_id: Optional[str] = Field(None, description="External booking reference")
-    
-    # Booking Data
-    booking_data: Dict[str, Any] = Field(..., description="Complete booking information")
-    total_amount: Optional[float] = Field(None, ge=0, description="Total booking amount")
-    currency: Optional[str] = Field(None, max_length=3, description="Currency code")
-    
-    # Status
-    status: BookingStatus = Field(default=BookingStatus.PENDING, description="Booking status")
-    confirmation_code: Optional[str] = Field(None, description="Booking confirmation code")
-    payment_status: Optional[str] = Field(None, description="Payment status")
-    
-    # Timestamps
-    booking_date: Optional[datetime] = Field(None, description="When booking was made")
-    travel_date: Optional[date] = Field(None, description="Travel start date")
-    
-    @field_validator('user_id')
-    @classmethod
-    def validate_user_id(cls, v):
-        """Validate user_id is a valid UUID"""
-        try:
-            uuid.UUID(v)
-            return v
-        except ValueError:
-            raise ValueError('user_id must be a valid UUID')
-    
-    @field_validator('currency')
-    @classmethod
-    def validate_currency(cls, v):
-        """Validate currency code format"""
-        if v and not re.match(r'^[A-Z]{3}$', v):
-            raise ValueError('Currency must be 3 uppercase letters')
-        return v
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            date: lambda v: v.isoformat()
-        }
-
 class TravelItinerary(BaseModelWithId, TimestampMixin):
     """
     Complete travel itinerary model
@@ -587,8 +528,8 @@ class TravelItinerary(BaseModelWithId, TimestampMixin):
     duration_days: int = Field(..., ge=1, description="Trip duration in days")
     
     # Components
-    flights: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Flight bookings")
-    hotels: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Hotel bookings")
+    flights: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Flight information")
+    hotels: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Hotel information")
     activities: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Activities and tours")
     
     # Budget
@@ -597,7 +538,6 @@ class TravelItinerary(BaseModelWithId, TimestampMixin):
     currency: Optional[str] = Field(None, max_length=3, description="Currency code")
     
     # Status
-    is_booked: bool = Field(default=False, description="Whether all components are booked")
     is_shared: bool = Field(default=False, description="Whether itinerary is shared with group")
     
     @field_validator('user_id')
@@ -698,7 +638,6 @@ __all__ = [
     'UserRole', 
     'MessageType',
     'CabinClass',
-    'BookingStatus',
     'Gender',
     
     # Base Models
@@ -721,7 +660,6 @@ __all__ = [
     'HotelSearch',
     
     # Booking Models
-    'BookingRequest',
     'TravelItinerary',
     
     # Utility Models
