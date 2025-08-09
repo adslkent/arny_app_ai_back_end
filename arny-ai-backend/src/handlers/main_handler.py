@@ -212,14 +212,12 @@ class MainHandler:
                 response_data.update({
                     'search_results': agent_response.get('search_results', []),
                     'search_id': agent_response.get('search_id'),
-                    'flight_selected': agent_response.get('flight_selected'),
                     'filtering_info': agent_response.get('filtering_info', {})
                 })
             elif agent_response.get('agent_type') == 'hotel':
                 response_data.update({
                     'search_results': agent_response.get('search_results', []),
                     'search_id': agent_response.get('search_id'),
-                    'hotel_selected': agent_response.get('hotel_selected'),
                     'filtering_info': agent_response.get('filtering_info', {})
                 })
             
