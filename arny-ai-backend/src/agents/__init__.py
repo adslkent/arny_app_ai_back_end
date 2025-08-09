@@ -140,13 +140,13 @@ class AgentRegistry:
             },
             'flight': {
                 'class': FlightAgent,
-                'description': 'Manages flight searches and bookings',
+                'description': 'Manages flight searches and information',
                 'capabilities': ['flight_search', 'amadeus_integration'],
                 'required_config': ['openai_api_key', 'amadeus_api_key', 'database_connection']
             },
             'hotel': {
                 'class': HotelAgent,
-                'description': 'Manages hotel searches and bookings',
+                'description': 'Manages hotel searches and information',
                 'capabilities': ['hotel_search', 'hotel_offers', 'amadeus_integration'],
                 'required_config': ['openai_api_key', 'amadeus_api_key', 'database_connection']
             },
