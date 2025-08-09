@@ -28,9 +28,9 @@ from pydantic import BaseModel, ValidationError
 from ..utils.config import config
 from .models import (
     UserProfile, OnboardingProgress, GroupMember, ChatMessage,
-    FlightSearch, HotelSearch, UserPreferences, BookingRequest,
+    FlightSearch, HotelSearch, UserPreferences,
     TravelItinerary, OnboardingStep, UserRole, MessageType,
-    BookingStatus, PaginationInfo
+    PaginationInfo
 )
 
 # Set up logging
