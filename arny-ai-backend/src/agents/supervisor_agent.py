@@ -257,7 +257,7 @@ class SupervisorAgent:
                 - "What about [different date]?" - refers to the most recent flight or hotel search
                 - "Show me more options" - refers to the most recent flight or hotel search
                 - "How much?" or "What's the price?" - refers to the most recent flight or hotel discussed
-                - "Book it" or "I'll take it" - refers to the most recent flight or hotel option shown
+                - "Tell me more about it" - refers to the most recent flight or hotel option shown
 
                 Example routing decisions:
                 - User previously asked about flights to Paris, now asks "what about next week?" → route to "flight_search"
