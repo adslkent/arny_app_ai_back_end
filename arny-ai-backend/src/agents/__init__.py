@@ -141,7 +141,7 @@ class AgentRegistry:
             'flight': {
                 'class': FlightAgent,
                 'description': 'Manages flight searches and bookings',
-                'capabilities': ['flight_search', 'flight_pricing', 'amadeus_integration'],
+                'capabilities': ['flight_search', 'amadeus_integration'],
                 'required_config': ['openai_api_key', 'amadeus_api_key', 'database_connection']
             },
             'hotel': {
