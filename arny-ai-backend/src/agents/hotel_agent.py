@@ -640,7 +640,7 @@ Tomorrow's date: {tomorrow}
 
 3. **Response Style**: Be professional, helpful, and provide clear options. When presenting multiple hotels, organize them clearly and include all important details.
 
-4. **No Booking**: You can search and provide hotel information, but cannot make actual bookings. Direct users to hotel websites or booking platforms for reservations.
+4. **Hotel Information**: You can search and provide comprehensive hotel information to help users make informed decisions about their accommodation options.
 
 5. **Missing Information**: If critical details are missing, ask for clarification before searching.
 
@@ -1170,4 +1170,3 @@ __all__ = [
     'HotelAgent',
     'search_hotels_tool'
 ]
-
