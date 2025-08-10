@@ -13,8 +13,6 @@ Models included:
 - FlightSearch: Flight search results
 - HotelSearch: Hotel search results
 - UserPreferences: User travel preferences
-- BookingRequest: Travel booking requests
-- TravelItinerary: Complete travel plans
 
 All models use Pydantic for validation and include proper type hints.
 """
@@ -506,79 +504,6 @@ class HotelSearch(BaseModelWithId):
             date: lambda v: v.isoformat()
         }
 
-# ==================== BOOKING MODELS ====================
-
-class TravelItinerary(BaseModelWithId, TimestampMixin):
-    """
-    Complete travel itinerary model
-    
-    Stores complete travel plans including flights, hotels, and activities.
-    """
-    user_id: str = Field(..., description="Supabase user UUID")
-    group_code: Optional[str] = Field(None, description="Associated group code")
-    
-    # Itinerary Details
-    title: str = Field(..., min_length=1, max_length=255, description="Itinerary title")
-    description: Optional[str] = Field(None, description="Itinerary description")
-    destination: str = Field(..., description="Main destination")
-    
-    # Dates
-    start_date: date = Field(..., description="Trip start date")
-    end_date: date = Field(..., description="Trip end date")
-    duration_days: int = Field(..., ge=1, description="Trip duration in days")
-    
-    # Components
-    flights: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Flight information")
-    hotels: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Hotel information")
-    activities: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Activities and tours")
-    
-    # Budget
-    estimated_cost: Optional[float] = Field(None, ge=0, description="Estimated total cost")
-    actual_cost: Optional[float] = Field(None, ge=0, description="Actual total cost")
-    currency: Optional[str] = Field(None, max_length=3, description="Currency code")
-    
-    # Status
-    is_shared: bool = Field(default=False, description="Whether itinerary is shared with group")
-    
-    @field_validator('user_id')
-    @classmethod
-    def validate_user_id(cls, v):
-        """Validate user_id is a valid UUID"""
-        try:
-            uuid.UUID(v)
-            return v
-        except ValueError:
-            raise ValueError('user_id must be a valid UUID')
-    
-    @field_validator('end_date')
-    @classmethod
-    def validate_end_date(cls, v, info):
-        """Validate end date is after start date"""
-        if 'start_date' in info.data:
-            if v <= info.data['start_date']:
-                raise ValueError('End date must be after start date')
-        return v
-    
-    @model_validator(mode='before')
-    @classmethod
-    def calculate_duration(cls, values):
-        """Calculate duration in days"""
-        if isinstance(values, dict):
-            start_date = values.get('start_date')
-            end_date = values.get('end_date')
-            
-            if start_date and end_date:
-                duration = (end_date - start_date).days
-                values['duration_days'] = max(1, duration)
-        
-        return values
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            date: lambda v: v.isoformat()
-        }
-
 # ==================== UTILITY MODELS ====================
 
 class APIResponse(BaseModel):
@@ -658,9 +583,6 @@ __all__ = [
     # Search Models
     'FlightSearch',
     'HotelSearch',
-    
-    # Booking Models
-    'TravelItinerary',
     
     # Utility Models
     'APIResponse',
