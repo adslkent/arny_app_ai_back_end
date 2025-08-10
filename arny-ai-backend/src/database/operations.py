@@ -29,7 +29,7 @@ from ..utils.config import config
 from .models import (
     UserProfile, OnboardingProgress, GroupMember, ChatMessage,
     FlightSearch, HotelSearch, UserPreferences,
-    TravelItinerary, OnboardingStep, UserRole, MessageType,
+    OnboardingStep, UserRole, MessageType,
     PaginationInfo
 )
 
