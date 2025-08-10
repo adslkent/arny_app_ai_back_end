@@ -12,7 +12,6 @@ Models included:
 - ChatMessage: Conversation messages
 - FlightSearch: Flight search results
 - HotelSearch: Hotel search results
-- UserPreferences: User travel preferences
 
 All models use Pydantic for validation and include proper type hints.
 """
@@ -200,56 +199,6 @@ class OnboardingProgress(TimestampMixin):
             current_step = values.get('current_step', OnboardingStep.GROUP_CODE)
             values['completion_percentage'] = step_percentages.get(current_step, 0.0)
         return values
-
-class UserPreferences(TimestampMixin):
-    """
-    User travel preferences model
-    
-    Stores detailed travel preferences for personalization.
-    Maps to the 'user_preferences' table in Supabase.
-    """
-    user_id: str = Field(..., description="Supabase user UUID")
-    
-    # Travel Preferences
-    preferred_airlines: Optional[List[str]] = Field(default_factory=list, description="Preferred airline codes")
-    preferred_hotels: Optional[List[str]] = Field(default_factory=list, description="Preferred hotel chains")
-    preferred_cabin_class: Optional[CabinClass] = Field(default=CabinClass.ECONOMY, description="Preferred cabin class")
-    
-    # Budget Preferences
-    budget_range: Optional[Dict[str, float]] = Field(default_factory=dict, description="Budget ranges for different trip types")
-    price_sensitivity: Optional[str] = Field(None, description="How price-sensitive the user is")
-    
-    # Dietary and Accessibility
-    dietary_restrictions: Optional[List[str]] = Field(default_factory=list, description="Dietary restrictions")
-    accessibility_needs: Optional[List[str]] = Field(default_factory=list, description="Accessibility requirements")
-    
-    # Travel Style
-    trip_types: Optional[List[str]] = Field(default_factory=list, description="Types of trips they prefer")
-    
-    # Notification Preferences
-    email_notifications: bool = Field(default=True, description="Receive email notifications")
-    push_notifications: bool = Field(default=True, description="Receive push notifications")
-    deal_alerts: bool = Field(default=True, description="Receive deal alerts")
-    
-    @field_validator('user_id')
-    @classmethod
-    def validate_user_id(cls, v):
-        """Validate user_id is a valid UUID"""
-        try:
-            uuid.UUID(v)
-            return v
-        except ValueError:
-            raise ValueError('user_id must be a valid UUID')
-    
-    @field_validator('budget_range')
-    @classmethod
-    def validate_budget_range(cls, v):
-        """Validate budget range values"""
-        if v:
-            for key, value in v.items():
-                if not isinstance(value, (int, float)) or value < 0:
-                    raise ValueError(f'Budget value for {key} must be a positive number')
-        return v
 
 # ==================== GROUP MODELS ====================
 
