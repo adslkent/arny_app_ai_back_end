@@ -16,7 +16,6 @@ Database Tables:
 - chat_messages: Conversation history
 - flight_searches: Flight search results and history
 - hotel_searches: Hotel search results and history
-- user_preferences: User travel preferences
 
 Usage:
     from src.database import DatabaseOperations, UserProfile, OnboardingStep
@@ -34,8 +33,7 @@ from .models import (
     GroupMember,
     ChatMessage,
     FlightSearch,
-    HotelSearch,
-    UserPreferences
+    HotelSearch
 )
 
 # Import operations
@@ -53,7 +51,6 @@ __all__ = [
     'ChatMessage',
     'FlightSearch',
     'HotelSearch',
-    'UserPreferences',
     
     # Operations
     'DatabaseOperations',
