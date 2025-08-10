@@ -28,7 +28,7 @@ from pydantic import BaseModel, ValidationError
 from ..utils.config import config
 from .models import (
     UserProfile, OnboardingProgress, GroupMember, ChatMessage,
-    FlightSearch, HotelSearch, UserPreferences,
+    FlightSearch, HotelSearch,
     OnboardingStep, UserRole, MessageType,
     PaginationInfo
 )
@@ -1240,90 +1240,6 @@ class DatabaseOperations:
             logger.error(f"Error saving hotel search for {search.user_id}: {e}")
             return False
     
-    # ==================== USER PREFERENCES OPERATIONS ====================
-    
-    @database_retry
-    async def get_user_preferences(self, user_id: str) -> Optional[UserPreferences]:
-        """
-        Get user preferences with retry strategies
-        """
-        try:
-            # Use consistent UUID validation
-            is_valid, validated_user_id = self._validate_and_format_uuid(user_id, "user_id")
-            if not is_valid:
-                logger.warning(f"Invalid user_id format in get_user_preferences: {validated_user_id}")
-                return None
-            
-            logger.info(f"Getting user preferences for user: {validated_user_id}")
-            
-            response = self.client.table("user_preferences").select("*").eq("user_id", validated_user_id).execute()
-            
-            if response.data and len(response.data) > 0:
-                prefs_data = response.data[0]
-                
-                # Parse JSON fields
-                for field in ["preferred_airlines", "preferred_hotels", "dietary_restrictions", "accessibility_needs", "trip_types"]:
-                    if prefs_data.get(field) and isinstance(prefs_data[field], str):
-                        try:
-                            prefs_data[field] = json.loads(prefs_data[field])
-                        except json.JSONDecodeError:
-                            prefs_data[field] = []
-                
-                if prefs_data.get("budget_range") and isinstance(prefs_data["budget_range"], str):
-                    try:
-                        prefs_data["budget_range"] = json.loads(prefs_data["budget_range"])
-                    except json.JSONDecodeError:
-                        prefs_data["budget_range"] = {}
-                
-                try:
-                    return UserPreferences(**prefs_data)
-                except ValidationError as ve:
-                    logger.error(f"User preferences validation error for user {validated_user_id}: {ve}")
-                    return None
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error getting user preferences for {user_id}: {e}")
-            return None
-    
-    @database_retry
-    async def save_user_preferences(self, preferences: UserPreferences) -> bool:
-        """
-        Save or update user preferences with retry strategies
-        """
-        try:
-            logger.info(f"Saving user preferences for user: {preferences.user_id}")
-            
-            prefs_dict = preferences.dict()
-            prefs_dict["updated_at"] = datetime.utcnow().isoformat()
-            
-            # Convert list and dict fields to JSON
-            for field in ["preferred_airlines", "preferred_hotels", "dietary_restrictions", "accessibility_needs", "trip_types"]:
-                if prefs_dict.get(field):
-                    prefs_dict[field] = json.dumps(prefs_dict[field])
-            
-            if prefs_dict.get("budget_range"):
-                prefs_dict["budget_range"] = json.dumps(prefs_dict["budget_range"])
-            
-            # Try to update first, if no rows affected, insert
-            response = self.client.table("user_preferences").update(prefs_dict).eq("user_id", preferences.user_id).execute()
-            
-            if not response.data:
-                # No existing record, create new one
-                prefs_dict["created_at"] = datetime.utcnow().isoformat()
-                response = self.client.table("user_preferences").insert(prefs_dict).execute()
-            
-            success = len(response.data) > 0
-            if success:
-                logger.info(f"User preferences saved successfully for user: {preferences.user_id}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Error saving user preferences for {preferences.user_id}: {e}")
-            return False
-    
     # ==================== DATABASE HEALTH AND MAINTENANCE ====================
     
     @database_retry
@@ -1345,8 +1261,7 @@ class DatabaseOperations:
                 "group_members": "id",
                 "flight_searches": "search_id",
                 "hotel_searches": "id",
-                "onboarding_progress": "user_id",
-                "user_preferences": "user_id"
+                "onboarding_progress": "user_id"
             }
 
             for table, primary_key in table_configs.items():
