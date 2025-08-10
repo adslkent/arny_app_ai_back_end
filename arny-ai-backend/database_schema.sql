@@ -3,7 +3,6 @@
 -- ⚠️ WARNING: This will delete all existing data!
 
 -- Drop existing tables in correct order (reverse dependency order)
-DROP TABLE IF EXISTS user_preferences CASCADE;
 DROP TABLE IF EXISTS hotel_searches CASCADE;
 DROP TABLE IF EXISTS flight_searches CASCADE;
 DROP TABLE IF EXISTS chat_messages CASCADE;
@@ -114,24 +113,6 @@ CREATE TABLE hotel_searches (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- User Preferences Table (for advanced personalization)
-CREATE TABLE user_preferences (
-    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    preferred_airlines JSONB DEFAULT '[]'::jsonb,
-    preferred_hotels JSONB DEFAULT '[]'::jsonb,
-    preferred_cabin_class VARCHAR(20) DEFAULT 'ECONOMY',
-    budget_range JSONB DEFAULT '{}'::jsonb,
-    price_sensitivity VARCHAR(50),
-    dietary_restrictions JSONB DEFAULT '[]'::jsonb,
-    accessibility_needs JSONB DEFAULT '[]'::jsonb,
-    trip_types JSONB DEFAULT '[]'::jsonb,
-    email_notifications BOOLEAN DEFAULT TRUE,
-    push_notifications BOOLEAN DEFAULT TRUE,
-    deal_alerts BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Create indexes for better performance
 CREATE INDEX idx_user_profiles_email ON user_profiles(email);
 CREATE INDEX idx_user_profiles_group_code ON user_profiles(group_code);
@@ -171,10 +152,6 @@ CREATE TRIGGER update_group_members_updated_at
     BEFORE UPDATE ON group_members 
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
-CREATE TRIGGER update_user_preferences_updated_at 
-    BEFORE UPDATE ON user_preferences 
-    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
 -- Row Level Security (RLS) Policies
 -- Enable RLS on all tables
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -183,7 +160,6 @@ ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE flight_searches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hotel_searches ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_requests ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for user_profiles
@@ -244,16 +220,6 @@ CREATE POLICY "Users can view own hotel searches" ON hotel_searches
     FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own hotel searches" ON hotel_searches
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- RLS Policies for user_preferences
-CREATE POLICY "Users can view own preferences" ON user_preferences
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own preferences" ON user_preferences
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own preferences" ON user_preferences
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Create a function to get group members (callable from backend)
